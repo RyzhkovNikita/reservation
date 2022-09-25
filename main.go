@@ -1,15 +1,11 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
+	_ "barckend/routers"
+	beego "github.com/beego/beego/v2/server/web"
 )
 
 func main() {
-	http.HandleFunc("/", handler)
-	http.ListenAndServe("localhost:8080", nil)
-}
-
-func handler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Hello epta")
+	beego.SetStaticPath("api/v1/image/", "images")
+	beego.Run()
 }
