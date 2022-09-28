@@ -7,5 +7,7 @@ import (
 
 func main() {
 	beego.SetStaticPath("api/v1/image/", "images")
+	beego.BConfig.WebConfig.DirectoryIndex = true
+	beego.BConfig.WebConfig.StaticDir["/swagger"] = "swagger"
 	beego.Run()
 }

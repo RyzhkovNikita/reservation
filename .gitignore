@@ -8,6 +8,7 @@
 *.out
 go.work
 go.sum
-conf
+conf/app.conf
 *.tmp
+*.db
 
