@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-type TokenType int
+type TokenType uint
 
 var ExpiredTokenError = errors.New("token is expired")
 var InvalidTokenError = errors.New("token is expired")
@@ -17,7 +17,7 @@ const (
 )
 
 type TokenManager interface {
-	CreateToken(userId int64, duration time.Duration, tokenType TokenType) (string, error)
+	CreateToken(userId uint64, duration time.Duration, tokenType TokenType) (string, error)
 	VerifyToken(token string, tokenType TokenType) (*Payload, error)
 }
 
@@ -26,12 +26,12 @@ type JWTTokenManager struct {
 }
 
 type Payload struct {
-	UserId    int64
+	UserId    uint64
 	ExpiresAt time.Time
 	TokenType TokenType
 }
 
-func (p Payload) Valid() error {
+func (p *Payload) Valid() error {
 	if time.Now().After(p.ExpiresAt) {
 		return ExpiredTokenError
 	}
@@ -39,11 +39,11 @@ func (p Payload) Valid() error {
 }
 
 func (J JWTTokenManager) CreateToken(
-	userId int64,
+	userId uint64,
 	duration time.Duration,
 	tokenType TokenType,
 ) (string, error) {
-	jwttoken := jwt.NewWithClaims(jwt.SigningMethodHS256, Payload{
+	jwttoken := jwt.NewWithClaims(jwt.SigningMethodHS256, &Payload{
 		UserId:    userId,
 		ExpiresAt: time.Now().Add(duration),
 		TokenType: tokenType,

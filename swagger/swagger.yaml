@@ -6,45 +6,63 @@ info:
 
 tags:
   - name: Authorizing
-    description: Bar registration and authorization
+    description: Owner and admin authorization
   - name: Profile
     description: Profile management
-  - name: Tables
+  - name: Bar
+    description: Bar management
+  - name: Table
     description: Table management
-  - name: Reservations
+  - name: Reservation
     description: Reservation management
 
 paths:
-  /register:
+
+  /register/admin:
     post:
-      security: [ ]
       tags:
         - Authorizing
-      summary: Register bar with provided parameters
-      description: Register bar
-      operationId: registerBar
+      security: [ ]
+      summary: Register new admin profile
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateBar'
-        required: true
+              $ref: '#/components/schemas/RegisterAdmin'
       responses:
         200:
-          description: Successful response
+          description: Registration is successful
         400:
-          description: Invalid parameters
+          description: Invalid information provided
+
+  /register/owner:
+    post:
+      tags:
+        - Authorizing
+      security: [ ]
+      summary: Register new owner
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterOwner'
+      responses:
+        200:
+          description: Registration is successful
+        400:
+          description: Invalid information provided
+
   /login:
     post:
       tags:
         - Authorizing
       security: [ ]
-      summary: Get access token with password
+      summary: Get authorization tokens with email and password
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LoginBar'
+              $ref: '#/components/schemas/LoginInput'
       responses:
         200:
           description: Returns access and refresh tokens
@@ -52,30 +70,32 @@ paths:
             application/json:
               schema:
                 properties:
+                  role:
+                    type: integer
+                    description: Define a role of profile. 1 - owner, 2 - admin
                   access_token:
                     type: string
                     description: Access token to access authorized zone methods
                   refresh_token:
                     type: string
-                    description: Access token to access authorized zone methods
+                    description: Refresh token to retrieve access tokens
         400:
-          description: No bar with provided credentials
+          description: No user with provided credentials
 
-  /profile:
+  /me:
     get:
       tags:
         - Profile
-      summary: Get current bar profile
+      summary: Get current profile
       responses:
         200:
-          description: Bar profile
+          description: Admin profile
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProfileResponse'
+                $ref: '#/components/schemas/AdminProfileResponse'
         401:
           $ref: '#/components/responses/UnauthorizedError'
-  /profile/update:
     patch:
       tags:
         - Profile
@@ -84,22 +104,89 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateBar'
+              $ref: '#/components/schemas/UpdateProfile'
       responses:
         200:
-          description: Returns updated bar profile
+          description: Returns updated admin profile
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProfileResponse'
+                $ref: '#/components/schemas/AdminProfileResponse'
         401:
           $ref: '#/components/responses/UnauthorizedError'
         400:
           description: Invalid update parameters
-  /profile/logo:
+
+  /bar/create:
+    post:
+      tags:
+        - Bar
+      description: Create bar with provided parameters
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBar'
+      responses:
+        200:
+          description: Bar is created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BarInfoResponse'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        400:
+          description: Invalid create parameters
+
+  /bar/{bar_id}:
+    get:
+      tags:
+        - Bar
+      description: Returns information about bar
+      parameters:
+        - in: path
+          name: bar_id
+          description: Id of the bar
+          schema:
+            type: integer
+          required: true
+      responses:
+        200:
+          description: Information about bar
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BarInfoResponse'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        404:
+          $ref: '#/components/responses/BarNotFound'
+    patch:
+      tags:
+        - Bar
+      description: Update bar and return information about it
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBar'
+      responses:
+        200:
+          description: Updated information about bar
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BarInfoResponse'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        404:
+          $ref: '#/components/responses/BarNotFound'
+
+  /bar/{bar_id}/logo:
     put:
       tags:
-        - Profile
+        - Bar
       description: Upload bar logo
       requestBody:
         content:
@@ -113,16 +200,16 @@ paths:
           content:
             application/json:
               schema:
-                type: string
-                description: Url of uploaded image
-                example: http://10.11.0.64/images/1h23ih1.png
+                $ref: '#/components/schemas/PhotoLink'
         401:
           $ref: '#/components/responses/UnauthorizedError'
+        404:
+          $ref: '#/components/responses/BarNotFound'
 
   /table/create:
     post:
       tags:
-        - Tables
+        - Table
       summary: Create table
       requestBody:
         content:
@@ -140,10 +227,11 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         400:
           description: Invalid information is provided
+
   /table/all:
     get:
       tags:
-        - Tables
+        - Table
       summary: Get list of created tables
       responses:
         200:
@@ -156,15 +244,46 @@ paths:
                   $ref: '#/components/schemas/TableInfoResponse'
         401:
           $ref: '#/components/responses/UnauthorizedError'
+
   /table/{table_id}:
+    get:
+      tags:
+        - Table
+      summary: Get information about table
+      parameters:
+        - in: path
+          name: table_id
+          schema:
+            type: integer
+          required: true
+        - in: path
+          name: bar_id
+          schema:
+            type: integer
+          required: true
+      responses:
+        200:
+          description: Successful update
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TableInfoResponse'
+        404:
+          $ref: '#/components/responses/TableNotFound'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
     patch:
       tags:
-        - Tables
+        - Table
       summary: Update an existing table
       parameters:
         - in: path
           name: table_id
-          description: Id of the table to update
+          schema:
+            type: integer
+          required: true
+        - in: path
+          name: bar_id
           schema:
             type: integer
           required: true
@@ -189,12 +308,16 @@ paths:
       parameters:
         - in: path
           name: table_id
-          description: Id of the table to delete
+          schema:
+            type: integer
+          required: true
+        - in: path
+          name: bar_id
           schema:
             type: integer
           required: true
       tags:
-        - Tables
+        - Table
       description: Delete an existing table
       responses:
         200:
@@ -204,10 +327,10 @@ paths:
         401:
           $ref: '#/components/responses/UnauthorizedError'
 
-  /reserv:
+  /reserv/all:
     get:
       tags:
-        - Reservations
+        - Reservation
       description: Returns list of table reservations for specified dates
       parameters:
         - in: query
@@ -215,9 +338,9 @@ paths:
           schema:
             type: array
             items:
-              type: string
+              $ref: '#/components/schemas/DateString'
             example: [22.09.2022, 23.09.2022]
-            default: Current week
+            default: Today
           required: true
         - in: query
           name: table_id
@@ -239,10 +362,31 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         400:
           description: Invalid date format
+
   /reserv/{reserv_id}:
+    post:
+      tags:
+        - Reservation
+      parameters:
+        - in: path
+          name: reserv_id
+          schema:
+            type: integer
+          required: true
+      responses:
+        200:
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservationResponse'
+        404:
+          $ref: '#/components/responses/ReservationNotFound'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
     patch:
       tags:
-        - Reservations
+        - Reservation
       description: Modify reservation with provided id
       parameters:
         - in: path
@@ -270,7 +414,7 @@ paths:
           $ref: '#/components/responses/ReservationNotFound'
     delete:
       tags:
-        - Reservations
+        - Reservation
       description: Modify reservation with provided id
       parameters:
         - in: path
@@ -289,197 +433,236 @@ paths:
 
 components:
   schemas:
+
+    RegisterAdmin:
+      type: object
+      required: [name, surname, patronymic, password, email, phone]
+      properties:
+        name:
+          $ref: '#/components/schemas/Name'
+        surname:
+          $ref: '#/components/schemas/Surname'
+        patronymic:
+          $ref: '#/components/schemas/Patronymic'
+        email:
+          $ref: '#/components/schemas/Email'
+        phone:
+          $ref: '#/components/schemas/PhoneNumber'
+        password:
+          $ref: '#/components/schemas/Password'
+
+    RegisterOwner:
+      type: object
+      required: [name, surname, patronymic, password, email, phone]
+      properties:
+        name:
+          $ref: '#/components/schemas/Name'
+        surname:
+          $ref: '#/components/schemas/Surname'
+        patronymic:
+          $ref: '#/components/schemas/Patronymic'
+        email:
+          $ref: '#/components/schemas/Email'
+        phone:
+          $ref: '#/components/schemas/PhoneNumber'
+        password:
+          $ref: '#/components/schemas/Password'
+
+    UpdateProfile:
+      type: object
+      properties:
+        name:
+          $ref: '#/components/schemas/Name'
+        surname:
+          $ref: '#/components/schemas/Surname'
+        patronymic:
+          $ref: '#/components/schemas/Patronymic'
+        email:
+          $ref: '#/components/schemas/Email'
+        phone:
+          $ref: '#/components/schemas/PhoneNumber'
+        bar_id:
+          $ref: '#/components/schemas/Identifier'
+
     CreateBar:
       type: object
-      required: [email, password, name, description, address, work_hours]
+      required: [email, name, description, address, work_hours]
       properties:
         email:
-          type: string
-          example: example@mail.ru
-          maxLength: 30
-        password:
-          type: string
-          format: password
-          example: testPass123
-          maxLength: 100
+          $ref: '#/components/schemas/Email'
         name:
-          type: string
-          example: Old friends
-          minLength: 3
-          maxLength: 50
+          $ref: '#/components/schemas/BarName'
         description:
-          type: string
-          example: The bar with the most delicious cocktails in the town
-          maxLength: 400
+          $ref: '#/components/schemas/BarDescription'
         address:
-          type: string
-          example: Nevsky prospect, 16
-          maxLength: 100
+          $ref: '#/components/schemas/BarAddress'
+        phone:
+          $ref: '#/components/schemas/PhoneNumber'
         work_hours:
-          type: array
-          items:
-            type: string
-            minItems: 1
-            maxItems: 7
-          example: [
-            "10:00-22:00",
-            "10:00-22:00",
-            "10:00-22:00",
-            "10:00-22:00",
-            "10:00-22:00",
-            "10:00-22:00",
-            "10:00-22:00",
-          ]
+          $ref: '#/components/schemas/WorkHoursArray'
+
     UpdateBar:
       type: object
       properties:
+        email:
+          $ref: '#/components/schemas/Email'
         name:
-          type: string
-          example: Old friends
-          maxLength: 50
+          $ref: '#/components/schemas/BarName'
         description:
-          type: string
-          example: The bar with the most delicious cocktails in the town
-          maxLength: 400
+          $ref: '#/components/schemas/BarDescription'
         address:
-          type: string
-          example: Nevsky prospect, 16
-          maxLength: 100
+          $ref: '#/components/schemas/BarAddress'
+        phone:
+          $ref: '#/components/schemas/PhoneNumber'
         work_hours:
+          $ref: '#/components/schemas/WorkHoursArray'
+        is_visible:
+          type: boolean
+          description: Define whether bar is visible for clients
+        admin_ids:
           type: array
           items:
-            type: string
-            minItems: 1
-            maxItems: 7
-          example: [
-            "10:00-22:00",
-            "10:00-22:00",
-            "10:00-22:00",
-            "10:00-22:00",
-            "10:00-22:00",
-            "10:00-22:00",
-            "10:00-22:00",
-          ]
-    LoginBar:
+            type: integer
+        max_reserv_time:
+          type: string
+          example: 1:30
+
+    WorkHoursArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/WorkHoursItem'
+
+    WorkHoursItem:
+      type: object
+      required: [from ,to]
+      properties:
+        weekday:
+          type: integer
+          minimum: 1
+          maximum: 7
+          description: Weekday number [1 - Monday ... 7 - Sunday]
+        from:
+          $ref: '#/components/schemas/TimeString'
+        to:
+          $ref: '#/components/schemas/TimeString'
+        max_reserv_time:
+          type: string
+          example: 1:30
+
+    LoginInput:
       type: object
       required: [email, password]
       properties:
         email:
-          type: string
-          example: example@mail.ru
-          maxLength: 30
+          $ref: '#/components/schemas/Email'
         password:
           type: string
           example: testPass123
           maxLength: 30
+
     CreateTable:
       type: object
-      required: [name, persons]
+      required: [bar_id, name, persons]
       properties:
+        bar_id:
+          $ref: '#/components/schemas/Identifier'
         name:
-          type: string
-          example: Table 42
-          maxLength: 30
+          $ref: '#/components/schemas/TableName'
         persons:
-          type: integer
-          example: 4
-          minimum: 1
+          $ref: '#/components/schemas/TablePersons'
         description:
-          type: string
-          example: Near the window
-          maxLength: 100
+          $ref: '#/components/schemas/TableDescription'
+
     UpdateTable:
       type: object
       properties:
         name:
-          type: string
-          example: Table 42
-          maxLength: 30
+          $ref: '#/components/schemas/TableName'
         persons:
-          type: integer
-          example: 4
-          minimum: 1
+          $ref: '#/components/schemas/TablePersons'
         description:
-          type: string
-          example: Near the window
-          maxLength: 100
+          $ref: '#/components/schemas/TableDescription'
+
     ModifyReservation:
       type: object
       properties:
         time:
-          type: string
-          example: 15:30-17:00
+          $ref: '#/components/schemas/TimeString'
         date:
+          $ref: '#/components/schemas/DateString'
+
+    BarInfoResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        owner_id:
+          $ref: '#/components/schemas/Identifier'
+        email:
+          $ref: '#/components/schemas/Email'
+        phone:
+          $ref: '#/components/schemas/PhoneNumber'
+        address:
+          $ref: '#/components/schemas/Address'
+        name:
+          $ref: '#/components/schemas/BarName'
+        description:
+          $ref: '#/components/schemas/BarDescription'
+        logo_url:
+          $ref: '#/components/schemas/PhotoLink'
+        max_reserve_time:
           type: string
-          example: 03.09.2022
+          example: 1:30
+        is_visible_for_clients:
+          type: boolean
+          description: Define whether bar is visible for clients to reserve
+        admin_ids:
+          type: array
+          items:
+            type: integer
 
     TableInfoResponse:
       type: object
       required: [id, name, persons]
       properties:
         id:
-          type: integer
-          format: int64
-          example: 1
-          minimum: 1
+          $ref: '#/components/schemas/Identifier'
+        bar_id:
+          $ref: '#/components/schemas/Identifier'
         name:
           type: string
           example: Table 42
           maxLength: 30
         persons:
-          type: integer
-          example: 4
-          minimum: 1
+          $ref: '#/components/schemas/TablePersons'
         description:
           type: string
           example: Near the window
           maxLength: 100
-    ProfileResponse:
+
+    AdminProfileResponse:
       type: object
-      required: [id, email, address]
+      required: [id, email, name]
       properties:
         id:
-          type: integer
-          format: int64
-          example: 1
-          minimum: 1
+          $ref: '#/components/schemas/Identifier'
+        name:
+          $ref: '#/components/schemas/Name'
+        surname:
+          $ref: '#/components/schemas/Surname'
+        patronymic:
+          $ref: '#/components/schemas/Patronymic'
         email:
-          type: string
-          example: example@mail.ru
-          minLength: 7
-          maxLength: 30
-        description:
-          type: string
-          example: Near the window
-        address:
-          type: string
-          example: Nevsky prospect, 16
-        logo_url:
-          type: string
-          example: 'http://10.11.0.64/images/123nc13b.png'
-        work_hours:
-          type: array
-          items:
-            type: string
-            minLength: 7
-            maxItems: 7
-          example: [
-            "10:00-22:00",
-            "10:00-22:00",
-            "10:00-22:00",
-            "10:00-22:00",
-            "10:00-22:00",
-            "10:00-22:00",
-            "10:00-22:00",
-          ]
+          $ref: '#/components/schemas/Email'
+        phone:
+          $ref: '#/components/schemas/PhoneNumber'
+
     GuestResponse:
       type: object
       required: [id, name, photo_url, phone_number]
       properties:
         id:
-          type: integer
-          format: int64
-          minimum: 1
+          $ref: '#/components/schemas/Identifier'
         name:
           type: string
           maxLength: 30
@@ -487,30 +670,113 @@ components:
           type: string
           example: http://10.11.0.64/images/1oc1km1wkm.png
         phone_number:
-          type: string
-          minLength: 11
-          maxLength: 11
-          example: 79776540078
+          $ref: '#/components/schemas/PhoneNumber'
+
+    Identifier:
+      type: integer
+      format: int64
+      example: 1
+      minimum: 1
+
+    Password:
+      type: string
+      example: Sga12^q#daA
+      minLength: 6
+      maxLength: 40
+
+    Name:
+      type: string
+      example: Никита
+      minLength: 3
+      maxLength: 50
+
+    Surname:
+      type: string
+      example: Рыжков
+      minLength: 3
+      maxLength: 50
+
+    Patronymic:
+      type: string
+      example: Максимович
+      minLength: 3
+      maxLength: 50
+
+    Email:
+      type: string
+      format: email
+      example: example@mail.ru
+      minLength: 7
+      maxLength: 30
+
+    PhoneNumber:
+      type: string
+      example: 79776540078
+      minLength: 11
+      maxLength: 11
+
+    BarAddress:
+      type: string
+      example: Nevsky prospect, 16
+      maxLength: 100
+
+    BarName:
+      type: string
+      example: Old friends
+      minLength: 3
+      maxLength: 50
+
+    BarDescription:
+      type: string
+      example: The bar with the most delicious cocktails in the town
+      maxLength: 400
+
+    TablePersons:
+      type: integer
+      example: 4
+      minimum: 1
+
+    TableName:
+      type: string
+      example: Table 42
+      maxLength: 30
+
+    TableDescription:
+      type: string
+      example: Near the window
+      maxLength: 100
+
+    PhotoLink:
+      type: string
+      example: https://123.45.678.9/images/sajJInK1N21.png
+      maxLength: 100
+
+    TimeString:
+      type: string
+      minLength: 5
+      maxLength: 5
+      example: 10:00
+
+    DateString:
+      type: string
+      minLength: 10
+      maxLength: 10
+      example: 22.09.2022
+
     ReservationResponse:
       type: object
       required: [id, table_id, guest, date, time]
       properties:
         id:
-          type: integer
-          format: int64
-          minimum: 1
+          $ref: '#/components/schemas/Identifier'
         table_id:
-          type: integer
-          format: int64
-          minimum: 1
+          $ref: '#/components/schemas/Identifier'
         guest:
           $ref: '#/components/schemas/GuestResponse'
         date:
-          type: string
-          example: 22.09.2022
+          $ref: '#/components/schemas/DateString'
         time:
-          type: string
-          example: 20:30-22:00
+          $ref: '#/components/schemas/TimeString'
         comment:
           type: string
           example: We need some wines until we arrive
@@ -523,6 +789,8 @@ components:
       description: No reservation with provided id
     TableNotFound:
       description: No table with provided id
+    BarNotFound:
+      description: No bar with provided id
 
   securitySchemes:
     bearerAuth:

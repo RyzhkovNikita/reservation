@@ -2,12 +2,16 @@ package main
 
 import (
 	_ "barckend/routers"
+	"barckend/setup"
 	beego "github.com/beego/beego/v2/server/web"
 )
 
 func main() {
-	beego.SetStaticPath("api/v1/image/", "images")
-	beego.BConfig.WebConfig.DirectoryIndex = true
-	beego.BConfig.WebConfig.StaticDir["/swagger"] = "swagger"
+	for _, setuper := range setup.GetSetupers() {
+		err := setuper()
+		if err != nil {
+			panic(err)
+		}
+	}
 	beego.Run()
 }
