@@ -8,6 +8,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.7
 	github.com/pkg/errors v0.9.1
 	github.com/smartystreets/goconvey v1.7.2
+	golang.org/x/exp v0.0.0-20221011111909-0220f59fc3e4
 )
 
 require (
@@ -27,7 +28,7 @@ require (
 	github.com/smartystreets/assertions v1.2.0 // indirect
 	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a // indirect
 	golang.org/x/net v0.0.0-20210525063256-abc453219eb5 // indirect
-	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9 // indirect
+	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
 	golang.org/x/text v0.3.6 // indirect
 	google.golang.org/protobuf v1.26.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

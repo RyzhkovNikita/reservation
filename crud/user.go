@@ -10,7 +10,9 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-var Db Crud
+var Db AdminCrud
+
+var NoRowsUpdated = fmt.Errorf("no rows has been updated")
 
 func init() {
 	b := conf.AppConfig.Mode != conf.Prod
@@ -46,10 +48,12 @@ func init() {
 	}
 }
 
-type Crud interface {
-	IsEmailExist(email string) (bool, error)
-	IsPhoneExist(phone string) (bool, error)
+type AdminCrud interface {
+	GetById(id uint64) (*AdminInfo, error)
+	IsEmailOccupied(email string, ownerId *uint64) (bool, error)
+	IsPhoneOccupied(phone string, ownerId *uint64) (bool, error)
 	Insert(profile *AdminInfo) (*AdminInfo, error)
+	Update(profile *UpdateAdminInfo) (*AdminInfo, error)
 	CheckCredentialsEmail(email string, passwordHash string) (*AdminInfo, error)
 	CheckCredentialsPhone(phone string, passwordHash string) (*AdminInfo, error)
 }
@@ -58,10 +62,13 @@ type barCrudImpl struct {
 	ormer orm.Ormer
 }
 
-func (b *barCrudImpl) IsEmailExist(email string) (bool, error) {
+func (b *barCrudImpl) IsEmailOccupied(email string, ownerId *uint64) (bool, error) {
 	adminInfo := &AdminInfo{}
-	err := b.ormer.QueryTable(adminInfo).
-		Filter("Email", email).
+	expr := b.ormer.QueryTable(adminInfo).Filter("Email", email)
+	if ownerId != nil {
+		expr = expr.Exclude("id", ownerId)
+	}
+	err := expr.
 		One(adminInfo)
 	if err == orm.ErrNoRows {
 		return false, nil
@@ -71,11 +78,13 @@ func (b *barCrudImpl) IsEmailExist(email string) (bool, error) {
 	return true, nil
 }
 
-func (b *barCrudImpl) IsPhoneExist(phone string) (bool, error) {
+func (b *barCrudImpl) IsPhoneOccupied(phone string, ownerId *uint64) (bool, error) {
 	adminInfo := &AdminInfo{}
-	err := b.ormer.QueryTable(adminInfo).
-		Filter("Phone", phone).
-		One(adminInfo)
+	expr := b.ormer.QueryTable(adminInfo).Filter("Phone", phone)
+	if ownerId != nil {
+		expr = expr.Exclude("id", ownerId)
+	}
+	err := expr.One(adminInfo)
 	if err == orm.ErrNoRows {
 		return false, nil
 	} else if err != nil {
@@ -151,67 +160,49 @@ func (b *barCrudImpl) CheckCredentialsPhone(phone string, passwordHash string) (
 	return user.AdminInfo, nil
 }
 
-//func (crud *barCrudImpl) GetById(id int64) (*Profile, error) {
-//	profile := &Profile{}
-//	err := crud.ormer.
-//		QueryTable(profile).
-//		RelatedSel().
-//		Filter("Profile__id", id).
-//		One(profile)
-//	if err == orm.ErrNoRows {
-//		return nil, nil
-//	} else if err == orm.ErrMissPK {
-//		return nil, errors.Wrap(err, fmt.Sprintf("Miss primary key for id %d", id))
-//	}
-//	return profile, err
-//}
-//
-//func (crud *barCrudImpl) Insert(profile *Profile) (*Profile, error) {
-//	_, err := crud.ormer.Insert(profile.Credentials)
-//	if err != nil {
-//		return nil, errors.Wrap(
-//			err,
-//			fmt.Sprintf("Insert creds error occured. Profile: %v", profile),
-//		)
-//	}
-//	_, err = crud.ormer.Insert(profile)
-//	if err != nil {
-//		return nil, errors.Wrap(
-//			err,
-//			fmt.Sprintf("Insert profile error occured. Profile: %v", profile),
-//		)
-//	}
-//	return profile, nil
-//}
+func (b *barCrudImpl) GetById(id uint64) (*AdminInfo, error) {
+	profile := &AdminInfo{}
+	err := b.ormer.
+		QueryTable(profile).
+		RelatedSel().
+		Filter("id", id).
+		One(profile)
+	if err == orm.ErrNoRows {
+		return nil, nil
+	} else if err == orm.ErrMissPK {
+		return nil, errors.Wrap(err, fmt.Sprintf("Miss primary key for id %d", id))
+	}
+	return profile, err
+}
 
-//func (crud *barCrudImpl) GetByEmail(email string) (*Profile, error) {
-//	profile := &Profile{}
-//	err := crud.ormer.
-//		QueryTable(profile).
-//		RelatedSel().
-//		Filter("Credentials__email", email).
-//		One(profile)
-//	if err == orm.ErrNoRows {
-//		return nil, nil
-//	} else if err == orm.ErrMissPK {
-//		return nil, errors.Wrap(err, fmt.Sprintf("Miss primary key for email %s", email))
-//	}
-//	return profile, nil
-//}
-//
-//func (crud *barCrudImpl) CheckCredentials(email string, passwordHash string) (*Profile, error) {
-//	profile := &Profile{}
-//	err := crud.ormer.
-//		QueryTable(profile).
-//		RelatedSel().
-//		Filter("Credentials__email", email).
-//		Filter("Credentials__password_hash", passwordHash).
-//		One(profile)
-//	if err == orm.ErrNoRows {
-//		return nil, nil
-//	} else if err == orm.ErrMissPK {
-//		return nil, errors.Wrap(err, fmt.Sprintf("Miss primary key for email %s", email))
-//	}
-//	return profile, nil
-//}
-//
+func (b *barCrudImpl) Update(profile *UpdateAdminInfo) (*AdminInfo, error) {
+	params := orm.Params{}
+	if profile.Name != nil {
+		params["Name"] = profile.Name
+	}
+	if profile.Surname != nil {
+		params["Surname"] = profile.Surname
+	}
+	if profile.Patronymic != nil {
+		params["Patronymic"] = profile.Patronymic
+	}
+	if profile.Email != nil {
+		params["Email"] = profile.Email
+	}
+	if profile.Phone != nil {
+		params["Phone"] = profile.Phone
+	}
+	if len(params) == 0 {
+		return b.GetById(profile.Id)
+	}
+	num, err := b.ormer.QueryTable(&AdminInfo{}).
+		Filter("id", profile.Id).
+		Update(params)
+	if num == 0 {
+		return nil, NoRowsUpdated
+	}
+	if err != nil {
+		return nil, errors.Wrap(err, "Error while updating profile")
+	}
+	return b.GetById(profile.Id)
+}

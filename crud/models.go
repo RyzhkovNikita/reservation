@@ -24,6 +24,7 @@ type User struct {
 	IsActive     bool
 	PasswordHash *PasswordHash `orm:"reverse(one)"`
 	AdminInfo    *AdminInfo    `orm:"reverse(one)"`
+	GuestInfo    *GuestInfo    `orm:"reverse(one)"`
 }
 
 type AdminInfo struct {
@@ -34,6 +35,15 @@ type AdminInfo struct {
 	Email      string `orm:"size(30)"`
 	Phone      string `orm:"size(11)"`
 	User       *User  `orm:"rel(one);on_delete(cascade)"`
+}
+
+type UpdateAdminInfo struct {
+	Id         uint64
+	Surname    *string
+	Name       *string
+	Patronymic *string
+	Email      *string
+	Phone      *string
 }
 
 type GuestInfo struct {

@@ -481,8 +481,6 @@ components:
           $ref: '#/components/schemas/Email'
         phone:
           $ref: '#/components/schemas/PhoneNumber'
-        bar_id:
-          $ref: '#/components/schemas/Identifier'
 
     CreateBar:
       type: object

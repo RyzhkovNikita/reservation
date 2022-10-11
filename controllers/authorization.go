@@ -17,7 +17,7 @@ func (c *AuthorizationController) RegisterAdmin() {
 	if err := Require(admin, c.Ctx.Input.RequestBody); err != nil {
 		c.BadRequest(err.Error())
 	}
-	isEmailOccupied, err := c.Crud.IsEmailExist(admin.Email)
+	isEmailOccupied, err := c.Crud.IsEmailOccupied(admin.Email, nil)
 	if err != nil {
 		c.InternalServerError(err)
 	}
@@ -26,7 +26,7 @@ func (c *AuthorizationController) RegisterAdmin() {
 			fmt.Sprintf("Profile with this email {%s} is already registered", admin.Email),
 		)
 	}
-	isPhoneOccupied, err := c.Crud.IsPhoneExist(admin.Phone)
+	isPhoneOccupied, err := c.Crud.IsPhoneOccupied(admin.Phone, nil)
 	if err != nil {
 		c.InternalServerError(err)
 	}
@@ -66,11 +66,11 @@ func (c *AuthorizationController) RegisterAdmin() {
 }
 
 func (c *AuthorizationController) RegisterOwner() {
-	admin := &RegisterAdmin{}
+	admin := &RegisterOwner{}
 	if err := Require(admin, c.Ctx.Input.RequestBody); err != nil {
 		c.BadRequest(err.Error())
 	}
-	isEmailOccupied, err := c.Crud.IsEmailExist(admin.Email)
+	isEmailOccupied, err := c.Crud.IsEmailOccupied(admin.Email, nil)
 	if err != nil {
 		c.InternalServerError(err)
 	}
@@ -79,7 +79,7 @@ func (c *AuthorizationController) RegisterOwner() {
 			fmt.Sprintf("Profile with this email {%s} is already registered", admin.Email),
 		)
 	}
-	isPhoneOccupied, err := c.Crud.IsPhoneExist(admin.Phone)
+	isPhoneOccupied, err := c.Crud.IsPhoneOccupied(admin.Phone, nil)
 	if err != nil {
 		c.InternalServerError(err)
 	}

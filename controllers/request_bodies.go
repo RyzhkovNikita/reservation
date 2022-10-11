@@ -33,6 +33,7 @@ func (form *LoginForm) Valid(validation *validation.Validation) {
 			validation.AddError("internal", "Exception while validating")
 		}
 		validation.Match(form.Phone, regex, "phone")
+		validation.MinSize(form.Phone, 11, "phone")
 		validation.MaxSize(form.Phone, 11, "phone")
 	} else {
 		validation.MaxSize(form.Email, 30, "email")
@@ -42,7 +43,7 @@ func (form *LoginForm) Valid(validation *validation.Validation) {
 
 type RegisterAdmin struct {
 	Email      string `json:"email" valid:"Required; Email; MaxSize(30)"`
-	Phone      string `json:"phone" valid:"Required; Phone"`
+	Phone      string `json:"phone" valid:"Required; MinSize(11); MaxSize(11); Match(^[0-9]*$)"`
 	Password   string `json:"password" valid:"Required; MinSize(6); MaxSize(40)"`
 	Name       string `json:"name" valid:"Required; MinSize(3); MaxSize(50)"`
 	Surname    string `json:"surname" valid:"Required; MinSize(3); MaxSize(50)"`
@@ -51,7 +52,7 @@ type RegisterAdmin struct {
 
 type RegisterOwner struct {
 	Email      string `json:"email" valid:"Required; Email; MaxSize(30)"`
-	Phone      string `json:"phone" valid:"Required; MinSize(11); MaxSize(11); Phone"`
+	Phone      string `json:"phone" valid:"Required; MinSize(11); MaxSize(11); Match(^[0-9]*$)"`
 	Password   string `json:"password" valid:"Required; MaxSize(100)"`
 	Name       string `json:"name" valid:"Required; MinSize(3); MaxSize(50)"`
 	Surname    string `json:"surname" valid:"Required; MinSize(3); MaxSize(50)"`
@@ -65,4 +66,40 @@ type RegisterBar struct {
 	Password    string   `json:"password" valid:"Required; MaxSize(100)"`
 	Address     string   `json:"address" valid:"Required; MaxSize(100)"`
 	WorkHours   []string `json:"work_hours"  valid:"Required; Length(7)"`
+}
+
+type UpdateProfile struct {
+	Email      *string `json:"email,omitempty"`
+	Phone      *string `json:"phone,omitempty"`
+	Name       *string `json:"name,omitempty"`
+	Surname    *string `json:"surname,omitempty"`
+	Patronymic *string `json:"patronymic,omitempty"`
+}
+
+func (form *UpdateProfile) Valid(validation *validation.Validation) {
+	if form.Phone != nil {
+		regex, err := regexp.Compile("^[0-9]*$")
+		if err != nil {
+			validation.AddError("internal", "Exception while validating")
+		}
+		validation.Match(form.Phone, regex, "phone")
+		validation.MinSize(form.Phone, 11, "phone")
+		validation.MaxSize(form.Phone, 11, "phone")
+	}
+	if form.Email != nil {
+		validation.Email(form.Email, "email")
+		validation.MaxSize(form.Email, 30, "email")
+	}
+	if form.Surname != nil {
+		validation.MinSize(form.Surname, 3, "surname")
+		validation.MaxSize(form.Surname, 50, "surname")
+	}
+	if form.Name != nil {
+		validation.MinSize(form.Name, 3, "name")
+		validation.MaxSize(form.Name, 50, "name")
+	}
+	if form.Patronymic != nil {
+		validation.MinSize(form.Patronymic, 3, "patronymic")
+		validation.MaxSize(form.Patronymic, 50, "patronymic")
+	}
 }
