@@ -3,14 +3,21 @@ package controllers
 import (
 	"barckend/crud"
 	"fmt"
+	"github.com/pkg/errors"
 )
 
 type ProfileController struct {
 	BaseController
+	Mapper ModelMapper
 }
 
 func (c *ProfileController) GetMe() {
-	c.Data["json"] = c.Mapper.AdminDbToNet(c.GetProfile())
+	user := c.GetUser()
+	if user.IsAdmin() {
+		c.Data["json"] = c.Mapper.AdminDbToNet(user.AdminInfo)
+	} else if user.IsOwner() {
+		c.Data["json"] = c.Mapper.OwnerDbToNet(user.OwnerInfo)
+	}
 	err := c.ServeJSON()
 	if err != nil {
 		c.InternalServerError(err)
@@ -22,8 +29,9 @@ func (c *ProfileController) PatchMe() {
 	if err := Require(admin, c.Ctx.Input.RequestBody); err != nil {
 		c.BadRequest(err.Error())
 	}
+	userMe := c.GetUser()
 	if admin.Email != nil {
-		isOccupied, err := c.Crud.IsEmailOccupied(*admin.Email, &c.GetProfile().Id)
+		isOccupied, err := c.Crud.IsEmailOccupied(*admin.Email, &userMe.Id)
 		if err != nil {
 			c.InternalServerError(err)
 		}
@@ -34,7 +42,7 @@ func (c *ProfileController) PatchMe() {
 		}
 	}
 	if admin.Phone != nil {
-		isOccupied, err := c.Crud.IsPhoneOccupied(*admin.Phone, &c.GetProfile().Id)
+		isOccupied, err := c.Crud.IsPhoneOccupied(*admin.Phone, &userMe.Id)
 		if err != nil {
 			c.InternalServerError(err)
 		}
@@ -44,21 +52,41 @@ func (c *ProfileController) PatchMe() {
 			)
 		}
 	}
-	adminInfo, err := c.Crud.Update(&crud.UpdateAdminInfo{
-		Id:         c.GetProfile().Id,
-		Surname:    admin.Surname,
-		Name:       admin.Name,
-		Patronymic: admin.Patronymic,
-		Email:      admin.Email,
-		Phone:      admin.Phone,
-	})
+	var err error
+	var adminInfo *crud.AdminInfo
+	var ownerInfo *crud.OwnerInfo
+	if userMe.IsAdmin() {
+		adminInfo, err = c.Crud.UpdateAdmin(&crud.UpdateAdminInfo{
+			Id:         userMe.Id,
+			Surname:    admin.Surname,
+			Name:       admin.Name,
+			Patronymic: admin.Patronymic,
+			Email:      admin.Email,
+			Phone:      admin.Phone,
+		})
+	} else {
+		ownerInfo, err = c.Crud.UpdateOwner(&crud.UpdateOwnerInfo{
+			Id:         userMe.Id,
+			Surname:    admin.Surname,
+			Name:       admin.Name,
+			Patronymic: admin.Patronymic,
+			Email:      admin.Email,
+			Phone:      admin.Phone,
+		})
+	}
 	if err != nil {
 		c.InternalServerError(err)
 	}
-	if adminInfo == nil {
-		c.InternalServerError(fmt.Errorf("no user found after update"))
+	if adminInfo == nil && ownerInfo == nil {
+		c.InternalServerError(errors.New("no user found after update"))
 	}
-	c.Data["json"] = c.Mapper.AdminDbToNet(adminInfo)
+	if userMe.IsAdmin() {
+		c.Data["json"] = c.Mapper.AdminDbToNet(adminInfo)
+	} else if userMe.IsOwner() {
+		c.Data["json"] = c.Mapper.OwnerDbToNet(ownerInfo)
+	} else {
+		c.InternalServerError(errors.New("WTF"))
+	}
 	err = c.ServeJSON()
 	if err != nil {
 		c.InternalServerError(err)

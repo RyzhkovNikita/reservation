@@ -23,8 +23,17 @@ type User struct {
 	Role         Role
 	IsActive     bool
 	PasswordHash *PasswordHash `orm:"reverse(one)"`
-	AdminInfo    *AdminInfo    `orm:"reverse(one)"`
-	GuestInfo    *GuestInfo    `orm:"reverse(one)"`
+	AdminInfo    *AdminInfo    `orm:"null;reverse(one)"`
+	GuestInfo    *GuestInfo    `orm:"null;reverse(one)"`
+	OwnerInfo    *OwnerInfo    `orm:"null;reverse(one)"`
+}
+
+func (user *User) IsAdmin() bool {
+	return user.Role == Admin
+}
+
+func (user *User) IsOwner() bool {
+	return user.Role == Owner
 }
 
 type AdminInfo struct {
@@ -35,15 +44,18 @@ type AdminInfo struct {
 	Email      string `orm:"size(30)"`
 	Phone      string `orm:"size(11)"`
 	User       *User  `orm:"rel(one);on_delete(cascade)"`
+	Bar        *Bar   `orm:"null;rel(fk);on_delete(set_null)"`
 }
 
-type UpdateAdminInfo struct {
-	Id         uint64
-	Surname    *string
-	Name       *string
-	Patronymic *string
-	Email      *string
-	Phone      *string
+type OwnerInfo struct {
+	Id         uint64 `orm:"auto"`
+	Surname    string `orm:"size(50)"`
+	Name       string `orm:"size(50)"`
+	Patronymic string `orm:"size(50)"`
+	Email      string `orm:"size(30)"`
+	Phone      string `orm:"size(11)"`
+	User       *User  `orm:"rel(one);on_delete(cascade)"`
+	Bars       []*Bar `orm:"reverse(many)"`
 }
 
 type GuestInfo struct {
@@ -64,6 +76,8 @@ type Bar struct {
 	CreationTime         orm.DateTimeField `orm:"auto_now_add"`
 	MaxReservTimeMinutes uint
 	IsVisible            bool
+	OwnerInfo            *OwnerInfo   `orm:"null;rel(fk);on_delete(set_null)"`
+	Admins               []*AdminInfo `orm:"reverse(many)"`
 }
 
 type WorkHours struct {

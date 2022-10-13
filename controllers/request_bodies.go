@@ -28,11 +28,7 @@ func (form *LoginForm) Valid(validation *validation.Validation) {
 		validation.AddError("login_check", "Phone or email required")
 	}
 	if form.Phone != nil {
-		regex, err := regexp.Compile("^[0-9]*$")
-		if err != nil {
-			validation.AddError("internal", "Exception while validating")
-		}
-		validation.Match(form.Phone, regex, "phone")
+		validation.Numeric(form.Phone, "phone")
 		validation.MinSize(form.Phone, 11, "phone")
 		validation.MaxSize(form.Phone, 11, "phone")
 	} else {
@@ -43,7 +39,7 @@ func (form *LoginForm) Valid(validation *validation.Validation) {
 
 type RegisterAdmin struct {
 	Email      string `json:"email" valid:"Required; Email; MaxSize(30)"`
-	Phone      string `json:"phone" valid:"Required; MinSize(11); MaxSize(11); Match(^[0-9]*$)"`
+	Phone      string `json:"phone" valid:"Required; MinSize(11); MaxSize(11); Numeric"`
 	Password   string `json:"password" valid:"Required; MinSize(6); MaxSize(40)"`
 	Name       string `json:"name" valid:"Required; MinSize(3); MaxSize(50)"`
 	Surname    string `json:"surname" valid:"Required; MinSize(3); MaxSize(50)"`
@@ -52,20 +48,37 @@ type RegisterAdmin struct {
 
 type RegisterOwner struct {
 	Email      string `json:"email" valid:"Required; Email; MaxSize(30)"`
-	Phone      string `json:"phone" valid:"Required; MinSize(11); MaxSize(11); Match(^[0-9]*$)"`
+	Phone      string `json:"phone" valid:"Required; MinSize(11); MaxSize(11); Numeric"`
 	Password   string `json:"password" valid:"Required; MaxSize(100)"`
 	Name       string `json:"name" valid:"Required; MinSize(3); MaxSize(50)"`
 	Surname    string `json:"surname" valid:"Required; MinSize(3); MaxSize(50)"`
 	Patronymic string `json:"patronymic" valid:"Required; MinSize(3); MaxSize(50)"`
 }
 
-type RegisterBar struct {
-	Email       string   `json:"email" valid:"Required; Email; MaxSize(30)"`
-	Name        string   `json:"name" valid:"Required; MaxSize(50)"`
-	Description string   `json:"description" valid:"Required; MaxSize(400)"`
-	Password    string   `json:"password" valid:"Required; MaxSize(100)"`
-	Address     string   `json:"address" valid:"Required; MaxSize(100)"`
-	WorkHours   []string `json:"work_hours"  valid:"Required; Length(7)"`
+type CreateBarInfo struct {
+	Email       string      `json:"email" valid:"Required; Email; MaxSize(30)"`
+	Phone       string      `json:"phone" valid:"Required; MinSize(11); MaxSize(11); Numeric"`
+	Name        string      `json:"name" valid:"Required; MaxSize(50)"`
+	Description string      `json:"description" valid:"Required; MaxSize(400)"`
+	Address     string      `json:"address" valid:"Required; MaxSize(100)"`
+	WorkHours   []WorkHours `json:"work_hours"  valid:"Required; Length(7)"`
+}
+
+type WorkHours struct {
+	Weekday            uint    `json:"weekday" valid:"Required; Range(1,7)"`
+	From               string  `json:"from" valid:"Required; Match(^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$)"`
+	To                 string  `json:"to" valid:"Required; Match(^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$)"`
+	MaxReservationTime *string `json:"max_reserv_time,omitempty" valid:"Match(^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$)"`
+}
+
+func (form *WorkHours) Valid(validation *validation.Validation) {
+	if form.MaxReservationTime != nil {
+		regex, err := regexp.Compile("^[0-9]*$")
+		if err != nil {
+			validation.AddError("internal", "Exception while validating")
+		}
+		validation.Match(form.MaxReservationTime, regex, "work_hours")
+	}
 }
 
 type UpdateProfile struct {
@@ -78,11 +91,7 @@ type UpdateProfile struct {
 
 func (form *UpdateProfile) Valid(validation *validation.Validation) {
 	if form.Phone != nil {
-		regex, err := regexp.Compile("^[0-9]*$")
-		if err != nil {
-			validation.AddError("internal", "Exception while validating")
-		}
-		validation.Match(form.Phone, regex, "phone")
+		validation.Numeric(form.Phone, "phone")
 		validation.MinSize(form.Phone, 11, "phone")
 		validation.MaxSize(form.Phone, 11, "phone")
 	}

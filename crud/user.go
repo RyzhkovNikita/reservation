@@ -29,6 +29,7 @@ func init() {
 		new(PasswordHash),
 		new(User),
 		new(AdminInfo),
+		new(OwnerInfo),
 		new(GuestInfo),
 		new(Bar),
 		new(WorkHours),
@@ -43,71 +44,90 @@ func init() {
 	if err != nil {
 		panic(fmt.Errorf("error occured while Syncdb: %s", err))
 	}
-	Db = &barCrudImpl{
-		ormer: orm.NewOrm(),
+	newOrm := orm.NewOrm()
+	Db = &userCrudImpl{
+		ormer: newOrm,
+	}
+	BarDb = &barCrudImpl{
+		ormer: newOrm,
 	}
 }
 
 type AdminCrud interface {
-	GetById(id uint64) (*AdminInfo, error)
+	GetById(id uint64) (*User, error)
 	IsEmailOccupied(email string, ownerId *uint64) (bool, error)
 	IsPhoneOccupied(phone string, ownerId *uint64) (bool, error)
-	Insert(profile *AdminInfo) (*AdminInfo, error)
-	Update(profile *UpdateAdminInfo) (*AdminInfo, error)
-	CheckCredentialsEmail(email string, passwordHash string) (*AdminInfo, error)
-	CheckCredentialsPhone(phone string, passwordHash string) (*AdminInfo, error)
+	InsertAdmin(profile *AdminInfo, passwordHash string) (*AdminInfo, error)
+	InsertOwner(profile *OwnerInfo, passwordHash string) (*OwnerInfo, error)
+	UpdateAdmin(profile *UpdateAdminInfo) (*AdminInfo, error)
+	UpdateOwner(profile *UpdateOwnerInfo) (*OwnerInfo, error)
+	CheckCredentialsEmail(email string, passwordHash string) (*User, error)
+	CheckCredentialsPhone(phone string, passwordHash string) (*User, error)
 }
 
-type barCrudImpl struct {
+type userCrudImpl struct {
 	ormer orm.Ormer
 }
 
-func (b *barCrudImpl) IsEmailOccupied(email string, ownerId *uint64) (bool, error) {
-	adminInfo := &AdminInfo{}
-	expr := b.ormer.QueryTable(adminInfo).Filter("Email", email)
+func (b *userCrudImpl) IsEmailOccupied(email string, ownerId *uint64) (bool, error) {
+	user := &User{}
+	exprAdmin := b.ormer.QueryTable(user).
+		RelatedSel().
+		Filter("AdminInfo__email", email)
 	if ownerId != nil {
-		expr = expr.Exclude("id", ownerId)
+		exprAdmin = exprAdmin.Exclude("id", ownerId)
 	}
-	err := expr.
-		One(adminInfo)
-	if err == orm.ErrNoRows {
-		return false, nil
-	} else if err != nil {
-		return false, errors.Wrap(err, fmt.Sprintf("Unknown error"))
+	exprOwner := b.ormer.QueryTable(user).
+		RelatedSel().
+		Filter("OwnerInfo__email", email)
+	if ownerId != nil {
+		exprAdmin = exprAdmin.Exclude("id", ownerId)
 	}
-	return true, nil
+	return exprAdmin.Exist() || exprOwner.Exist(), nil
 }
 
-func (b *barCrudImpl) IsPhoneOccupied(phone string, ownerId *uint64) (bool, error) {
-	adminInfo := &AdminInfo{}
-	expr := b.ormer.QueryTable(adminInfo).Filter("Phone", phone)
+func (b *userCrudImpl) IsPhoneOccupied(phone string, ownerId *uint64) (bool, error) {
+	user := &User{}
+	exprAdmin := b.ormer.QueryTable(user).
+		RelatedSel().
+		Filter("AdminInfo__phone", phone)
 	if ownerId != nil {
-		expr = expr.Exclude("id", ownerId)
+		exprAdmin = exprAdmin.Exclude("id", ownerId)
 	}
-	err := expr.One(adminInfo)
-	if err == orm.ErrNoRows {
-		return false, nil
-	} else if err != nil {
-		return false, errors.Wrap(err, fmt.Sprintf("Unknown error"))
+	exprOwner := b.ormer.QueryTable(user).
+		RelatedSel().
+		Filter("OwnerInfo__phone", phone)
+	if ownerId != nil {
+		exprAdmin = exprAdmin.Exclude("id", ownerId)
 	}
-	return true, nil
+	return exprAdmin.Exist() || exprOwner.Exist(), nil
 }
 
-func (b *barCrudImpl) Insert(profile *AdminInfo) (*AdminInfo, error) {
-	_, err := b.ormer.Insert(profile.User)
+func (b *userCrudImpl) InsertAdmin(profile *AdminInfo, passwordHash string) (*AdminInfo, error) {
+	user := &User{
+		Role:     Admin,
+		IsActive: true,
+	}
+	passwordHashModel := &PasswordHash{
+		Hash: passwordHash,
+		User: user,
+	}
+	passwordHashModel.User = user
+	_, err := b.ormer.Insert(user)
 	if err != nil {
 		return nil, errors.Wrap(
 			err,
-			fmt.Sprintf("Insert user error occured. User: %v", profile.User),
+			fmt.Sprintf("Insert user error occured. User: %v", user),
 		)
 	}
-	_, err = b.ormer.Insert(profile.User.PasswordHash)
+	_, err = b.ormer.Insert(passwordHashModel)
 	if err != nil {
 		return nil, errors.Wrap(
 			err,
-			fmt.Sprintf("Insert password error occured. Password hash: %v", profile.User.PasswordHash),
+			fmt.Sprintf("Insert password error occured. Password hash: %v", passwordHashModel),
 		)
 	}
+	profile.User = user
 	_, err = b.ormer.Insert(profile)
 	if err != nil {
 		return nil, errors.Wrap(
@@ -118,7 +138,42 @@ func (b *barCrudImpl) Insert(profile *AdminInfo) (*AdminInfo, error) {
 	return profile, nil
 }
 
-func (b *barCrudImpl) CheckCredentialsEmail(email string, passwordHash string) (*AdminInfo, error) {
+func (b *userCrudImpl) InsertOwner(profile *OwnerInfo, passwordHash string) (*OwnerInfo, error) {
+	user := &User{
+		Role:     Admin,
+		IsActive: true,
+	}
+	passwordHashModel := &PasswordHash{
+		Hash: passwordHash,
+		User: user,
+	}
+	passwordHashModel.User = user
+	_, err := b.ormer.Insert(user)
+	if err != nil {
+		return nil, errors.Wrap(
+			err,
+			fmt.Sprintf("Insert user error occured. User: %v", user),
+		)
+	}
+	_, err = b.ormer.Insert(passwordHashModel)
+	if err != nil {
+		return nil, errors.Wrap(
+			err,
+			fmt.Sprintf("Insert password error occured. Password hash: %v", passwordHashModel),
+		)
+	}
+	profile.User = user
+	_, err = b.ormer.Insert(profile)
+	if err != nil {
+		return nil, errors.Wrap(
+			err,
+			fmt.Sprintf("Insert admin info error occured. AdminInfo: %v", profile),
+		)
+	}
+	return profile, nil
+}
+
+func (b *userCrudImpl) CheckCredentialsEmail(email string, passwordHash string) (*User, error) {
 	user := &User{}
 	err := b.ormer.
 		QueryTable(user).
@@ -131,15 +186,19 @@ func (b *barCrudImpl) CheckCredentialsEmail(email string, passwordHash string) (
 	} else if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("Unknown error for email: %s", email))
 	}
-	_, err = b.ormer.LoadRelated(user, "AdminInfo")
+	if user.IsAdmin() {
+		_, err = b.ormer.LoadRelated(user, "AdminInfo")
+	} else if user.IsOwner() {
+		_, err = b.ormer.LoadRelated(user, "OwnerInfo")
+	}
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("Unknown error when loading related for email: %s", email))
 	}
 	user.AdminInfo.User = user
-	return user.AdminInfo, nil
+	return user, nil
 }
 
-func (b *barCrudImpl) CheckCredentialsPhone(phone string, passwordHash string) (*AdminInfo, error) {
+func (b *userCrudImpl) CheckCredentialsPhone(phone string, passwordHash string) (*User, error) {
 	user := &User{}
 	err := b.ormer.
 		QueryTable(user).
@@ -152,51 +211,59 @@ func (b *barCrudImpl) CheckCredentialsPhone(phone string, passwordHash string) (
 	} else if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("Unknown error for phone: %s", phone))
 	}
-	_, err = b.ormer.LoadRelated(user, "AdminInfo")
+	if user.IsAdmin() {
+		_, err = b.ormer.LoadRelated(user, "AdminInfo")
+	} else if user.IsOwner() {
+		_, err = b.ormer.LoadRelated(user, "OwnerInfo")
+	}
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("Unknown error when loading related for phone: %s", phone))
 	}
 	user.AdminInfo.User = user
-	return user.AdminInfo, nil
+	return user, nil
 }
 
-func (b *barCrudImpl) GetById(id uint64) (*AdminInfo, error) {
-	profile := &AdminInfo{}
+func (b *userCrudImpl) GetById(id uint64) (*User, error) {
+	user := &User{}
 	err := b.ormer.
-		QueryTable(profile).
-		RelatedSel().
+		QueryTable(user).
 		Filter("id", id).
-		One(profile)
+		One(user)
 	if err == orm.ErrNoRows {
 		return nil, nil
 	} else if err == orm.ErrMissPK {
 		return nil, errors.Wrap(err, fmt.Sprintf("Miss primary key for id %d", id))
 	}
-	return profile, err
+	if user.IsOwner() {
+		b.ormer.LoadRelated(user, "OwnerInfo")
+	} else if user.IsAdmin() {
+		b.ormer.LoadRelated(user, "AdminInfo")
+	}
+	return user, err
 }
 
-func (b *barCrudImpl) Update(profile *UpdateAdminInfo) (*AdminInfo, error) {
+func (b *userCrudImpl) UpdateAdmin(profile *UpdateAdminInfo) (*AdminInfo, error) {
+	user, err := b.GetById(profile.Id)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error while fetching profile")
+	}
+	if user.Role != Admin {
+		return nil, errors.New("User has wrong role")
+	}
 	params := orm.Params{}
-	if profile.Name != nil {
-		params["Name"] = profile.Name
-	}
-	if profile.Surname != nil {
-		params["Surname"] = profile.Surname
-	}
-	if profile.Patronymic != nil {
-		params["Patronymic"] = profile.Patronymic
-	}
-	if profile.Email != nil {
-		params["Email"] = profile.Email
-	}
-	if profile.Phone != nil {
-		params["Phone"] = profile.Phone
-	}
+	addIfNeeded(&params, "Name", profile.Name, user.AdminInfo.Name)
+	addIfNeeded(&params, "Surname", profile.Surname, user.AdminInfo.Surname)
+	addIfNeeded(&params, "Patronymic", profile.Patronymic, user.AdminInfo.Patronymic)
+	addIfNeeded(&params, "Email", profile.Email, user.AdminInfo.Email)
+	addIfNeeded(&params, "Phone", profile.Phone, user.AdminInfo.Phone)
 	if len(params) == 0 {
-		return b.GetById(profile.Id)
+		if err != nil {
+			return nil, errors.Wrap(err, "Error while fetching profile")
+		}
+		return user.AdminInfo, err
 	}
 	num, err := b.ormer.QueryTable(&AdminInfo{}).
-		Filter("id", profile.Id).
+		Filter("user_id", profile.Id).
 		Update(params)
 	if num == 0 {
 		return nil, NoRowsUpdated
@@ -204,5 +271,55 @@ func (b *barCrudImpl) Update(profile *UpdateAdminInfo) (*AdminInfo, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "Error while updating profile")
 	}
-	return b.GetById(profile.Id)
+	user, err = b.GetById(profile.Id)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error while fetching profile")
+	}
+	return user.AdminInfo, nil
+}
+
+func addIfNeeded(params *orm.Params, key string, newValue *string, oldValue string) {
+	if newValue == nil {
+		return
+	}
+	if *newValue == oldValue {
+		return
+	}
+	(*params)[key] = *newValue
+}
+
+func (b *userCrudImpl) UpdateOwner(profile *UpdateOwnerInfo) (*OwnerInfo, error) {
+	user, err := b.GetById(profile.Id)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error while fetching profile")
+	}
+	if user.Role != Owner {
+		return nil, errors.New("User has wrong role")
+	}
+	params := orm.Params{}
+	addIfNeeded(&params, "Name", profile.Name, user.OwnerInfo.Name)
+	addIfNeeded(&params, "Surname", profile.Surname, user.OwnerInfo.Surname)
+	addIfNeeded(&params, "Patronymic", profile.Patronymic, user.OwnerInfo.Patronymic)
+	addIfNeeded(&params, "Email", profile.Email, user.OwnerInfo.Email)
+	addIfNeeded(&params, "Phone", profile.Phone, user.OwnerInfo.Phone)
+	if len(params) == 0 {
+		if err != nil {
+			return nil, errors.Wrap(err, "Error while fetching profile")
+		}
+		return user.OwnerInfo, err
+	}
+	num, err := b.ormer.QueryTable(&OwnerInfo{}).
+		Filter("user_id", profile.Id).
+		Update(params)
+	if num == 0 {
+		return nil, NoRowsUpdated
+	}
+	if err != nil {
+		return nil, errors.Wrap(err, "Error while updating profile")
+	}
+	user, err = b.GetById(profile.Id)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error while fetching profile")
+	}
+	return user.OwnerInfo, nil
 }

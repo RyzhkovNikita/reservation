@@ -18,7 +18,6 @@ type BaseController struct {
 	AuthorizationZones []crud.Role
 	TokenManager       security.TokenManager
 	Crud               crud.AdminCrud
-	Mapper             ModelMapper
 }
 
 func (c *BaseController) InternalServerError(err error) {
@@ -63,20 +62,20 @@ func (c *BaseController) assertAuthorization() {
 	if profile == nil {
 		c.Unauthorized()
 	}
-	if !slices.Contains(c.AuthorizationZones, profile.User.Role) {
+	if !slices.Contains(c.AuthorizationZones, profile.Role) {
 		c.Forbidden()
 	}
 	c.Data[PROFILE_KEY] = profile
 }
 
-func (c *BaseController) GetProfile() *crud.AdminInfo {
-	profile, exists := c.Data[PROFILE_KEY]
+func (c *BaseController) GetUser() *crud.User {
+	user, exists := c.Data[PROFILE_KEY]
 	if !exists {
-		c.InternalServerError(fmt.Errorf("no profile"))
+		c.InternalServerError(fmt.Errorf("no user"))
 	}
-	p, ok := profile.(*crud.AdminInfo)
+	p, ok := user.(*crud.User)
 	if !ok {
-		c.InternalServerError(fmt.Errorf("profile cast error"))
+		c.InternalServerError(fmt.Errorf("user cast error"))
 	}
 	return p
 }

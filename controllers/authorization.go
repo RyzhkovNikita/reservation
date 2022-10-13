@@ -10,6 +10,7 @@ import (
 type AuthorizationController struct {
 	BaseController
 	Encryptor security.Hasher
+	Mapper    ModelMapper
 }
 
 func (c *AuthorizationController) RegisterAdmin() {
@@ -39,23 +40,13 @@ func (c *AuthorizationController) RegisterAdmin() {
 	if err != nil {
 		c.InternalServerError(err)
 	}
-	userModel := &crud.User{
-		Role:     crud.Admin,
-		IsActive: true,
-	}
-	passwordHashModel := &crud.PasswordHash{
-		Hash: passwordHash,
-		User: userModel,
-	}
-	userModel.PasswordHash = passwordHashModel
-	adminInfo, err := c.Crud.Insert(&crud.AdminInfo{
+	adminInfo, err := c.Crud.InsertAdmin(&crud.AdminInfo{
 		Name:       admin.Name,
 		Surname:    admin.Surname,
 		Patronymic: admin.Patronymic,
 		Email:      admin.Email,
 		Phone:      admin.Phone,
-		User:       userModel,
-	})
+	}, passwordHash)
 	if err != nil {
 		c.InternalServerError(err)
 	}
@@ -66,53 +57,43 @@ func (c *AuthorizationController) RegisterAdmin() {
 }
 
 func (c *AuthorizationController) RegisterOwner() {
-	admin := &RegisterOwner{}
-	if err := Require(admin, c.Ctx.Input.RequestBody); err != nil {
+	owner := &RegisterOwner{}
+	if err := Require(owner, c.Ctx.Input.RequestBody); err != nil {
 		c.BadRequest(err.Error())
 	}
-	isEmailOccupied, err := c.Crud.IsEmailOccupied(admin.Email, nil)
+	isEmailOccupied, err := c.Crud.IsEmailOccupied(owner.Email, nil)
 	if err != nil {
 		c.InternalServerError(err)
 	}
 	if isEmailOccupied {
 		c.BadRequest(
-			fmt.Sprintf("Profile with this email {%s} is already registered", admin.Email),
+			fmt.Sprintf("Profile with this email {%s} is already registered", owner.Email),
 		)
 	}
-	isPhoneOccupied, err := c.Crud.IsPhoneOccupied(admin.Phone, nil)
+	isPhoneOccupied, err := c.Crud.IsPhoneOccupied(owner.Phone, nil)
 	if err != nil {
 		c.InternalServerError(err)
 	}
 	if isPhoneOccupied {
 		c.BadRequest(
-			fmt.Sprintf("Profile with this phone {%s} is already registered", admin.Phone),
+			fmt.Sprintf("Profile with this phone {%s} is already registered", owner.Phone),
 		)
 	}
-	passwordHash, err := security.HashMaker.SHA256(admin.Password)
+	passwordHash, err := security.HashMaker.SHA256(owner.Password)
 	if err != nil {
 		c.InternalServerError(err)
 	}
-	userModel := &crud.User{
-		Role:     crud.Owner,
-		IsActive: true,
-	}
-	passwordHashModel := &crud.PasswordHash{
-		Hash: passwordHash,
-		User: userModel,
-	}
-	userModel.PasswordHash = passwordHashModel
-	adminInfo, err := c.Crud.Insert(&crud.AdminInfo{
-		Name:       admin.Name,
-		Surname:    admin.Surname,
-		Patronymic: admin.Patronymic,
-		Email:      admin.Email,
-		Phone:      admin.Phone,
-		User:       userModel,
-	})
+	adminInfo, err := c.Crud.InsertOwner(&crud.OwnerInfo{
+		Name:       owner.Name,
+		Surname:    owner.Surname,
+		Patronymic: owner.Patronymic,
+		Email:      owner.Email,
+		Phone:      owner.Phone,
+	}, passwordHash)
 	if err != nil {
 		c.InternalServerError(err)
 	}
-	c.Data["json"] = c.Mapper.AdminDbToNet(adminInfo)
+	c.Data["json"] = c.Mapper.OwnerDbToNet(adminInfo)
 	if err = c.ServeJSON(); err != nil {
 		c.InternalServerError(err)
 	}
@@ -127,7 +108,7 @@ func (c *AuthorizationController) Authorize() {
 	if err != nil {
 		c.InternalServerError(err)
 	}
-	var profile *crud.AdminInfo
+	var profile *crud.User
 	if form.Phone != nil {
 		profile, err = c.Crud.CheckCredentialsPhone(*form.Phone, passwordHash)
 	} else {
@@ -150,7 +131,7 @@ func (c *AuthorizationController) Authorize() {
 	c.Data["json"] = &AuthorizationPayload{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-		Role:         uint(profile.User.Role),
+		Role:         uint(profile.Role),
 	}
 	if err = c.ServeJSON(); err != nil {
 		c.InternalServerError(err)

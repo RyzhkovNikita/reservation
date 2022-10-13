@@ -484,7 +484,7 @@ components:
 
     CreateBar:
       type: object
-      required: [email, name, description, address, work_hours]
+      required: [email, name, phone, description, address, work_hours]
       properties:
         email:
           $ref: '#/components/schemas/Email'

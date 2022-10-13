@@ -26,6 +26,12 @@ func init() {
 	profileController.Mapper = controllers.Mapper
 	profileController.AuthorizationZones = []crud.Role{crud.Admin, crud.Owner}
 
+	createBarController := &controllers.BarCreateController{}
+	createBarController.Crud = crudDb
+	createBarController.TokenManager = tokenManager
+	createBarController.Mapper = controllers.Mapper
+	createBarController.AuthorizationZones = []crud.Role{crud.Owner}
+
 	ns := beego.NewNamespace("/api/v1",
 		beego.NSNamespace(
 			"/register",
@@ -34,6 +40,10 @@ func init() {
 		),
 		beego.NSRouter("/login", authorizationController, "post:Authorize"),
 		beego.NSRouter("/me", profileController, "get:GetMe;patch:PatchMe"),
+		beego.NSNamespace(
+			"/bar",
+			beego.NSRouter("/create", createBarController, "post:CreateBar"),
+		),
 	)
 	beego.AddNamespace(ns)
 }
