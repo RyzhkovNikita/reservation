@@ -18,10 +18,7 @@ func (c *ProfileController) GetMe() {
 	} else if user.IsOwner() {
 		c.Data["json"] = c.Mapper.OwnerDbToNet(user.OwnerInfo)
 	}
-	err := c.ServeJSON()
-	if err != nil {
-		c.InternalServerError(err)
-	}
+	c.ServeJSONInternal()
 }
 
 func (c *ProfileController) PatchMe() {
@@ -87,8 +84,5 @@ func (c *ProfileController) PatchMe() {
 	} else {
 		c.InternalServerError(errors.New("WTF"))
 	}
-	err = c.ServeJSON()
-	if err != nil {
-		c.InternalServerError(err)
-	}
+	c.ServeJSONInternal()
 }

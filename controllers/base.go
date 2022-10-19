@@ -36,6 +36,12 @@ func (c *BaseController) Forbidden() {
 	c.CustomAbort(403, "")
 }
 
+func (c *BaseController) ServeJSONInternal() {
+	if err := c.ServeJSON(); err != nil {
+		c.InternalServerError(err)
+	}
+}
+
 func (c *BaseController) Prepare() {
 	if len(c.AuthorizationZones) > 0 {
 		c.assertAuthorization()

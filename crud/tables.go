@@ -66,25 +66,26 @@ type GuestInfo struct {
 }
 
 type Bar struct {
-	Id                   uint64            `orm:"auto"`
-	Email                string            `orm:"size(30)"`
-	Address              string            `orm:"size(30)"`
-	Name                 string            `orm:"size(30)"`
-	Description          string            `orm:"size(30)"`
-	LogoUrl              string            `orm:"size(30)"`
-	Phone                string            `orm:"size(30)"`
-	CreationTime         orm.DateTimeField `orm:"auto_now_add"`
-	MaxReservTimeMinutes uint
-	IsVisible            bool
-	OwnerInfo            *OwnerInfo   `orm:"null;rel(fk);on_delete(set_null)"`
-	Admins               []*AdminInfo `orm:"reverse(many)"`
+	Id           uint64            `orm:"auto"`
+	Email        string            `orm:"size(30)"`
+	Address      string            `orm:"size(30)"`
+	Name         string            `orm:"size(30)"`
+	Description  string            `orm:"size(30)"`
+	LogoUrl      string            `orm:"size(30)"`
+	Phone        string            `orm:"size(30)"`
+	CreationTime orm.DateTimeField `orm:"auto_now_add"`
+	IsVisible    bool
+	OwnerInfo    *OwnerInfo   `orm:"null;rel(fk);on_delete(set_null)"`
+	Admins       []*AdminInfo `orm:"reverse(many)"`
+	WorkHours    []*WorkHours `orm:"reverse(many)"`
 }
 
 type WorkHours struct {
-	Id                   uint64 `orm:"auto"`
-	From                 string `orm:"size(5)"`
-	To                   string `orm:"size(5)"`
-	MaxReservTimeMinutes uint
+	Id      uint64 `orm:"auto"`
+	Weekday uint
+	From    string `orm:"size(5)"`
+	To      string `orm:"size(5)"`
+	Bar     *Bar   `orm:"rel(fk);on_delete(cascade)"`
 }
 
 type Weekday struct {

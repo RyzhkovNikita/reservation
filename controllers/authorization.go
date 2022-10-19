@@ -51,9 +51,7 @@ func (c *AuthorizationController) RegisterAdmin() {
 		c.InternalServerError(err)
 	}
 	c.Data["json"] = c.Mapper.AdminDbToNet(adminInfo)
-	if err = c.ServeJSON(); err != nil {
-		c.InternalServerError(err)
-	}
+	c.ServeJSONInternal()
 }
 
 func (c *AuthorizationController) RegisterOwner() {
@@ -94,9 +92,7 @@ func (c *AuthorizationController) RegisterOwner() {
 		c.InternalServerError(err)
 	}
 	c.Data["json"] = c.Mapper.OwnerDbToNet(adminInfo)
-	if err = c.ServeJSON(); err != nil {
-		c.InternalServerError(err)
-	}
+	c.ServeJSONInternal()
 }
 
 func (c *AuthorizationController) Authorize() {
@@ -133,7 +129,5 @@ func (c *AuthorizationController) Authorize() {
 		RefreshToken: refreshToken,
 		Role:         uint(profile.Role),
 	}
-	if err = c.ServeJSON(); err != nil {
-		c.InternalServerError(err)
-	}
+	c.ServeJSONInternal()
 }

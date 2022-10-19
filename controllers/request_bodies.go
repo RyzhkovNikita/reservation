@@ -4,7 +4,6 @@ import (
 	"barckend/utils"
 	"github.com/beego/beego/v2/core/validation"
 	"github.com/pkg/errors"
-	"regexp"
 )
 
 type BaseBody struct{}
@@ -61,24 +60,13 @@ type CreateBarInfo struct {
 	Name        string      `json:"name" valid:"Required; MaxSize(50)"`
 	Description string      `json:"description" valid:"Required; MaxSize(400)"`
 	Address     string      `json:"address" valid:"Required; MaxSize(100)"`
-	WorkHours   []WorkHours `json:"work_hours"  valid:"Required; Length(7)"`
+	WorkHours   []WorkHours `json:"work_hours"  valid:"Required; MaxSize(7)"`
 }
 
 type WorkHours struct {
-	Weekday            uint    `json:"weekday" valid:"Required; Range(1,7)"`
-	From               string  `json:"from" valid:"Required; Match(^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$)"`
-	To                 string  `json:"to" valid:"Required; Match(^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$)"`
-	MaxReservationTime *string `json:"max_reserv_time,omitempty" valid:"Match(^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$)"`
-}
-
-func (form *WorkHours) Valid(validation *validation.Validation) {
-	if form.MaxReservationTime != nil {
-		regex, err := regexp.Compile("^[0-9]*$")
-		if err != nil {
-			validation.AddError("internal", "Exception while validating")
-		}
-		validation.Match(form.MaxReservationTime, regex, "work_hours")
-	}
+	Weekday uint   `json:"weekday" valid:"Required; Range(1,7)"`
+	From    string `json:"from" valid:"Required; Match(^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$)"`
+	To      string `json:"to" valid:"Required; Match(^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$)"`
 }
 
 type UpdateProfile struct {

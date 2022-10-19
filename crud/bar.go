@@ -4,13 +4,16 @@ import (
 	"fmt"
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/pkg/errors"
+	"strconv"
 )
 
 var BarDb BarCrud
 
 type BarCrud interface {
-	Create(bar *Bar) (*Bar, error)
-	GetById(id uint64) (*Bar, error)
+	InsertBar(bar *Bar) (*Bar, error)
+	InsertWorkHours(barId uint64, workHoursList []WorkHours) ([]*WorkHours, error)
+	GetBarById(id uint64) (*Bar, error)
+	GetWorkHoursForBar(barId uint64) ([]*WorkHours, error)
 	IsNameOccupiedByAnotherOwner(ownerId uint64, name string) (bool, error)
 	Update(updateBar UpdateBar) (*Bar, error)
 }
@@ -19,7 +22,7 @@ type barCrudImpl struct {
 	ormer orm.Ormer
 }
 
-func (b *barCrudImpl) Create(bar *Bar) (*Bar, error) {
+func (b *barCrudImpl) InsertBar(bar *Bar) (*Bar, error) {
 	id, err := b.ormer.Insert(bar)
 	if err != nil {
 		return nil, errors.Wrap(
@@ -31,7 +34,24 @@ func (b *barCrudImpl) Create(bar *Bar) (*Bar, error) {
 	return bar, nil
 }
 
-func (b *barCrudImpl) GetById(id uint64) (*Bar, error) {
+func (b *barCrudImpl) InsertWorkHours(barId uint64, workHoursList []WorkHours) ([]*WorkHours, error) {
+	_, err := b.ormer.InsertMulti(len(workHoursList), workHoursList)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error while inserting work hours, barId="+strconv.FormatUint(barId, 10))
+	}
+	return b.GetWorkHoursForBar(barId)
+}
+
+func (b *barCrudImpl) GetWorkHoursForBar(barId uint64) ([]*WorkHours, error) {
+	var workHourListActual = make([]*WorkHours, 7)
+	_, err := b.ormer.QueryTable(&WorkHours{}).Filter("bar_id", barId).All(&workHourListActual)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error while querying work hours, barId="+strconv.FormatUint(barId, 10))
+	}
+	return workHourListActual, nil
+}
+
+func (b *barCrudImpl) GetBarById(id uint64) (*Bar, error) {
 	barInfo := &Bar{}
 	err := b.ormer.QueryTable(barInfo).
 		Filter("id", id).

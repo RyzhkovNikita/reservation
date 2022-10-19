@@ -28,6 +28,7 @@ func init() {
 
 	createBarController := &controllers.BarCreateController{}
 	createBarController.Crud = crudDb
+	createBarController.BarCrud = crud.BarDb
 	createBarController.TokenManager = tokenManager
 	createBarController.Mapper = controllers.Mapper
 	createBarController.AuthorizationZones = []crud.Role{crud.Owner}

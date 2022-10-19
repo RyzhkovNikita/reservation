@@ -140,7 +140,7 @@ func (b *userCrudImpl) InsertAdmin(profile *AdminInfo, passwordHash string) (*Ad
 
 func (b *userCrudImpl) InsertOwner(profile *OwnerInfo, passwordHash string) (*OwnerInfo, error) {
 	user := &User{
-		Role:     Admin,
+		Role:     Owner,
 		IsActive: true,
 	}
 	passwordHashModel := &PasswordHash{
@@ -181,20 +181,30 @@ func (b *userCrudImpl) CheckCredentialsEmail(email string, passwordHash string) 
 		Filter("PasswordHash__hash", passwordHash).
 		RelatedSel().
 		One(user)
+	if err == nil {
+		_, err = b.ormer.LoadRelated(user, "AdminInfo")
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("Unknown error when loading related for email: %s", email))
+		}
+		user.AdminInfo.User = user
+		return user, nil
+	}
+	err = b.ormer.
+		QueryTable(user).
+		Filter("OwnerInfo__email", email).
+		Filter("PasswordHash__hash", passwordHash).
+		RelatedSel().
+		One(user)
 	if err == orm.ErrNoRows {
 		return nil, nil
 	} else if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("Unknown error for email: %s", email))
 	}
-	if user.IsAdmin() {
-		_, err = b.ormer.LoadRelated(user, "AdminInfo")
-	} else if user.IsOwner() {
-		_, err = b.ormer.LoadRelated(user, "OwnerInfo")
-	}
+	_, err = b.ormer.LoadRelated(user, "OwnerInfo")
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("Unknown error when loading related for email: %s", email))
 	}
-	user.AdminInfo.User = user
+	user.OwnerInfo.User = user
 	return user, nil
 }
 
@@ -206,20 +216,30 @@ func (b *userCrudImpl) CheckCredentialsPhone(phone string, passwordHash string) 
 		Filter("PasswordHash__hash", passwordHash).
 		RelatedSel().
 		One(user)
+	if err == nil {
+		_, err = b.ormer.LoadRelated(user, "AdminInfo")
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("Unknown error when loading related for phone: %s", phone))
+		}
+		user.AdminInfo.User = user
+		return user, nil
+	}
+	err = b.ormer.
+		QueryTable(user).
+		Filter("OwnerInfo__email", phone).
+		Filter("PasswordHash__hash", passwordHash).
+		RelatedSel().
+		One(user)
 	if err == orm.ErrNoRows {
 		return nil, nil
 	} else if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("Unknown error for phone: %s", phone))
 	}
-	if user.IsAdmin() {
-		_, err = b.ormer.LoadRelated(user, "AdminInfo")
-	} else if user.IsOwner() {
-		_, err = b.ormer.LoadRelated(user, "OwnerInfo")
-	}
+	_, err = b.ormer.LoadRelated(user, "OwnerInfo")
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("Unknown error when loading related for phone: %s", phone))
 	}
-	user.AdminInfo.User = user
+	user.OwnerInfo.User = user
 	return user, nil
 }
 
@@ -234,10 +254,13 @@ func (b *userCrudImpl) GetById(id uint64) (*User, error) {
 	} else if err == orm.ErrMissPK {
 		return nil, errors.Wrap(err, fmt.Sprintf("Miss primary key for id %d", id))
 	}
-	if user.IsOwner() {
-		b.ormer.LoadRelated(user, "OwnerInfo")
-	} else if user.IsAdmin() {
-		b.ormer.LoadRelated(user, "AdminInfo")
+	if user.IsAdmin() {
+		_, err = b.ormer.LoadRelated(user, "AdminInfo")
+	} else if user.IsOwner() {
+		_, err = b.ormer.LoadRelated(user, "OwnerInfo")
+	}
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("Unknown error when loading related for id: %d", id))
 	}
 	return user, err
 }
