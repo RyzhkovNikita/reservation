@@ -1,49 +1,37 @@
 package routers
 
 import (
-	"barckend/conf"
 	"barckend/controllers"
+	"barckend/controllers/bar"
 	"barckend/crud"
-	"barckend/security"
 	beego "github.com/beego/beego/v2/server/web"
 )
 
 func init() {
-	tokenManager := security.JWTTokenManager{
-		SecretKey: conf.AppConfig.Secret,
-	}
-	crudDb := crud.Db
-	authorizationController := &controllers.AuthorizationController{
-		Encryptor: security.HashMaker,
-	}
-	authorizationController.Crud = crudDb
-	authorizationController.TokenManager = tokenManager
-	authorizationController.Mapper = controllers.Mapper
+	authorization := &controllers.AuthorizationController{}
 
-	profileController := &controllers.ProfileController{}
-	profileController.Crud = crudDb
-	profileController.TokenManager = tokenManager
-	profileController.Mapper = controllers.Mapper
-	profileController.AuthorizationZones = []crud.Role{crud.Admin, crud.Owner}
-
-	createBarController := &controllers.BarCreateController{}
-	createBarController.Crud = crudDb
-	createBarController.BarCrud = crud.BarDb
-	createBarController.TokenManager = tokenManager
-	createBarController.Mapper = controllers.Mapper
-	createBarController.AuthorizationZones = []crud.Role{crud.Owner}
+	profile := &controllers.ProfileController{}
+	profile.AuthorizationZones = []crud.Role{crud.Admin, crud.Owner}
+	createBar := &bar.CreateController{}
+	createBar.AuthorizationZones = []crud.Role{crud.Owner}
+	getBarInfo := &bar.InfoController{}
+	getBarInfo.AuthorizationZones = []crud.Role{crud.Owner, crud.Admin}
+	editBarInfo := &bar.EditController{}
+	editBarInfo.AuthorizationZones = []crud.Role{crud.Owner}
 
 	ns := beego.NewNamespace("/api/v1",
 		beego.NSNamespace(
 			"/register",
-			beego.NSRouter("/admin", authorizationController, "post:RegisterAdmin"),
-			beego.NSRouter("/owner", authorizationController, "post:RegisterOwner"),
+			beego.NSRouter("/admin", authorization, "post:RegisterAdmin"),
+			beego.NSRouter("/owner", authorization, "post:RegisterOwner"),
 		),
-		beego.NSRouter("/login", authorizationController, "post:Authorize"),
-		beego.NSRouter("/me", profileController, "get:GetMe;patch:PatchMe"),
+		beego.NSRouter("/login", authorization, "post:Authorize"),
+		beego.NSRouter("/me", profile, "get:GetMe;patch:PatchMe"),
 		beego.NSNamespace(
 			"/bar",
-			beego.NSRouter("/create", createBarController, "post:CreateBar"),
+			beego.NSRouter("/create", createBar, "post:CreateBar"),
+			beego.NSRouter("/:bar_id([0-9]+)", getBarInfo, "get:GetBarInformation"),
+			beego.NSRouter("/:bar_id([0-9]+)", editBarInfo, "patch:EditBar"),
 		),
 	)
 	beego.AddNamespace(ns)

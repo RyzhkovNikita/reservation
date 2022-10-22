@@ -20,13 +20,13 @@ type UpdateOwnerInfo struct {
 }
 
 type UpdateBar struct {
-	Id                   uint64
-	Email                *string
-	Address              *string
-	Name                 *string
-	Description          *string
-	LogoUrl              *string
-	Phone                *string
-	MaxReservTimeMinutes *uint
-	IsVisible            *bool
+	Id          uint64
+	Email       *string
+	Address     *string
+	Name        *string
+	Description *string
+	LogoUrl     *string
+	Phone       *string
+	IsVisible   *bool
+	WorkHours   []WorkHours
 }

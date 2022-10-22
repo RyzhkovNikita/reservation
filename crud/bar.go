@@ -7,7 +7,18 @@ import (
 	"strconv"
 )
 
-var BarDb BarCrud
+func initializeBarCrud(ormer orm.Ormer) {
+	instance = &barCrudImpl{ormer: ormer}
+}
+
+func GetBarCrud() BarCrud {
+	if instance == nil {
+		panic("Package is not initialized")
+	}
+	return instance
+}
+
+var instance *barCrudImpl = nil
 
 type BarCrud interface {
 	InsertBar(bar *Bar) (*Bar, error)
@@ -15,7 +26,7 @@ type BarCrud interface {
 	GetBarById(id uint64) (*Bar, error)
 	GetWorkHoursForBar(barId uint64) ([]*WorkHours, error)
 	IsNameOccupiedByAnotherOwner(ownerId uint64, name string) (bool, error)
-	Update(updateBar UpdateBar) (*Bar, error)
+	UpdateBar(updateBar *UpdateBar, barInfo *Bar) (*Bar, error)
 }
 
 type barCrudImpl struct {
@@ -67,7 +78,7 @@ func (b *barCrudImpl) GetBarById(id uint64) (*Bar, error) {
 func (b *barCrudImpl) IsNameOccupiedByAnotherOwner(ownerId uint64, name string) (bool, error) {
 	count, err := b.ormer.QueryTable(&Bar{}).
 		Filter("name", name).
-		Filter("owner_info_id", ownerId).
+		Exclude("owner_info_id", ownerId).
 		Count()
 	if err == orm.ErrNoRows {
 		return false, nil
@@ -77,7 +88,41 @@ func (b *barCrudImpl) IsNameOccupiedByAnotherOwner(ownerId uint64, name string) 
 	return count > 0, nil
 }
 
-func (b *barCrudImpl) Update(updateBar UpdateBar) (*Bar, error) {
-	//TODO implement me
-	panic("implement me")
+func (b *barCrudImpl) UpdateBar(updateBar *UpdateBar, barInfo *Bar) (*Bar, error) {
+	if barInfo == nil {
+		barInfoDb, err := b.GetBarById(updateBar.Id)
+		if err != nil {
+			return nil, err
+		}
+		if barInfoDb == nil {
+			return nil, errors.New(fmt.Sprintf("No bar was found with provided id: %d", updateBar.Id))
+		}
+	} else if updateBar.Id != barInfo.Id {
+		return nil, errors.New("Provided bar info and update info has different ids")
+	}
+	params := orm.Params{}
+	addStringIfNeeded(&params, "Email", updateBar.Email, barInfo.Email)
+	addStringIfNeeded(&params, "Phone", updateBar.Phone, barInfo.Phone)
+	addStringIfNeeded(&params, "Address", updateBar.Address, barInfo.Address)
+	addStringIfNeeded(&params, "Name", updateBar.Name, barInfo.Name)
+	addStringIfNeeded(&params, "Description", updateBar.Description, barInfo.Description)
+	addStringIfNeeded(&params, "LogoUrl", updateBar.LogoUrl, barInfo.LogoUrl)
+	addBoolIfNeeded(&params, "IsVisible", updateBar.IsVisible, barInfo.IsVisible)
+	if len(params) == 0 {
+		return barInfo, nil
+	}
+	num, err := b.ormer.QueryTable(&Bar{}).
+		Filter("id", updateBar.Id).
+		Update(params)
+	if num == 0 {
+		return nil, NoRowsUpdated
+	}
+	if err != nil {
+		return nil, errors.Wrap(err, "Error while updating bar")
+	}
+	updatedBar, err := b.GetBarById(updateBar.Id)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error while fetching bar")
+	}
+	return updatedBar, nil
 }

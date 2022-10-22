@@ -1,4 +1,4 @@
-package controllers
+package bodies
 
 import (
 	"barckend/utils"
@@ -57,7 +57,7 @@ type RegisterOwner struct {
 type CreateBarInfo struct {
 	Email       string      `json:"email" valid:"Required; Email; MaxSize(30)"`
 	Phone       string      `json:"phone" valid:"Required; MinSize(11); MaxSize(11); Numeric"`
-	Name        string      `json:"name" valid:"Required; MaxSize(50)"`
+	Name        string      `json:"name" valid:"Required; MinSize(3); MaxSize(50)"`
 	Description string      `json:"description" valid:"Required; MaxSize(400)"`
 	Address     string      `json:"address" valid:"Required; MaxSize(100)"`
 	WorkHours   []WorkHours `json:"work_hours"  valid:"Required; MaxSize(7)"`
@@ -98,5 +98,49 @@ func (form *UpdateProfile) Valid(validation *validation.Validation) {
 	if form.Patronymic != nil {
 		validation.MinSize(form.Patronymic, 3, "patronymic")
 		validation.MaxSize(form.Patronymic, 50, "patronymic")
+	}
+}
+
+type UpdateBar struct {
+	Email       *string      `json:"email,omitempty"`
+	Phone       *string      `json:"phone,omitempty"`
+	Name        *string      `json:"name,omitempty"`
+	Description *string      `json:"description,omitempty"`
+	Address     *string      `json:"address,omitempty"`
+	WorkHours   *[]WorkHours `json:"work_hours,omitempty"`
+	IsVisible   *bool        `json:"is_visible_to_user,omitempty"`
+}
+
+func (form *UpdateBar) Valid(validation *validation.Validation) {
+	if form.Phone != nil {
+		validation.Numeric(form.Phone, "phone")
+		validation.MinSize(form.Phone, 11, "phone")
+		validation.MaxSize(form.Phone, 11, "phone")
+	}
+	if form.Email != nil {
+		validation.Email(form.Email, "email")
+		validation.MaxSize(form.Email, 30, "email")
+	}
+	if form.Name != nil {
+		validation.MinSize(form.Name, 3, "name")
+		validation.MaxSize(form.Name, 50, "name")
+	}
+	if form.Address != nil {
+		validation.MaxSize(form.Name, 100, "address")
+	}
+	if form.Description != nil {
+		validation.MaxSize(form.Name, 400, "description")
+	}
+	if form.WorkHours != nil {
+		validation.MaxSize(form.WorkHours, 7, "work_hours")
+		for _, wh := range *form.WorkHours {
+			isValid, err := validation.Valid(wh)
+			if err != nil {
+				validation.AddError("Internal error", "Internal error occurred while validating")
+			}
+			if !isValid {
+				validation.AddError("WorkHours", "Work hours are invalid")
+			}
+		}
 	}
 }

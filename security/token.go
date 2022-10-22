@@ -1,10 +1,15 @@
 package security
 
 import (
+	"barckend/conf"
 	"errors"
 	jwt "github.com/dgrijalva/jwt-go"
 	"time"
 )
+
+func init() {
+	instance = JWTTokenManager{SecretKey: conf.AppConfig.Secret}
+}
 
 type TokenType uint
 
@@ -15,6 +20,12 @@ const (
 	Access TokenType = iota
 	Refresh
 )
+
+var instance TokenManager
+
+func GetTokenManager() TokenManager {
+	return instance
+}
 
 type TokenManager interface {
 	CreateToken(userId uint64, duration time.Duration, tokenType TokenType) (string, error)

@@ -15,8 +15,7 @@ var Db AdminCrud
 var NoRowsUpdated = fmt.Errorf("no rows has been updated")
 
 func init() {
-	b := conf.AppConfig.Mode != conf.Prod
-	orm.Debug = b
+	orm.Debug = conf.AppConfig.Mode != conf.Prod
 	err := orm.RegisterDataBase(
 		"default",
 		conf.AppConfig.DriverName,
@@ -48,9 +47,7 @@ func init() {
 	Db = &userCrudImpl{
 		ormer: newOrm,
 	}
-	BarDb = &barCrudImpl{
-		ormer: newOrm,
-	}
+	initializeBarCrud(newOrm)
 }
 
 type AdminCrud interface {
@@ -274,16 +271,13 @@ func (b *userCrudImpl) UpdateAdmin(profile *UpdateAdminInfo) (*AdminInfo, error)
 		return nil, errors.New("User has wrong role")
 	}
 	params := orm.Params{}
-	addIfNeeded(&params, "Name", profile.Name, user.AdminInfo.Name)
-	addIfNeeded(&params, "Surname", profile.Surname, user.AdminInfo.Surname)
-	addIfNeeded(&params, "Patronymic", profile.Patronymic, user.AdminInfo.Patronymic)
-	addIfNeeded(&params, "Email", profile.Email, user.AdminInfo.Email)
-	addIfNeeded(&params, "Phone", profile.Phone, user.AdminInfo.Phone)
+	addStringIfNeeded(&params, "Name", profile.Name, user.AdminInfo.Name)
+	addStringIfNeeded(&params, "Surname", profile.Surname, user.AdminInfo.Surname)
+	addStringIfNeeded(&params, "Patronymic", profile.Patronymic, user.AdminInfo.Patronymic)
+	addStringIfNeeded(&params, "Email", profile.Email, user.AdminInfo.Email)
+	addStringIfNeeded(&params, "Phone", profile.Phone, user.AdminInfo.Phone)
 	if len(params) == 0 {
-		if err != nil {
-			return nil, errors.Wrap(err, "Error while fetching profile")
-		}
-		return user.AdminInfo, err
+		return user.AdminInfo, nil
 	}
 	num, err := b.ormer.QueryTable(&AdminInfo{}).
 		Filter("user_id", profile.Id).
@@ -301,7 +295,7 @@ func (b *userCrudImpl) UpdateAdmin(profile *UpdateAdminInfo) (*AdminInfo, error)
 	return user.AdminInfo, nil
 }
 
-func addIfNeeded(params *orm.Params, key string, newValue *string, oldValue string) {
+func addStringIfNeeded(params *orm.Params, key string, newValue *string, oldValue string) {
 	if newValue == nil {
 		return
 	}
@@ -309,6 +303,16 @@ func addIfNeeded(params *orm.Params, key string, newValue *string, oldValue stri
 		return
 	}
 	(*params)[key] = *newValue
+}
+
+func addBoolIfNeeded(params *orm.Params, key string, newValue *bool, oldValue bool) {
+	if newValue == nil {
+		return
+	}
+	if *newValue == oldValue {
+		return
+	}
+	(*params)[key] = newValue
 }
 
 func (b *userCrudImpl) UpdateOwner(profile *UpdateOwnerInfo) (*OwnerInfo, error) {
@@ -320,16 +324,13 @@ func (b *userCrudImpl) UpdateOwner(profile *UpdateOwnerInfo) (*OwnerInfo, error)
 		return nil, errors.New("User has wrong role")
 	}
 	params := orm.Params{}
-	addIfNeeded(&params, "Name", profile.Name, user.OwnerInfo.Name)
-	addIfNeeded(&params, "Surname", profile.Surname, user.OwnerInfo.Surname)
-	addIfNeeded(&params, "Patronymic", profile.Patronymic, user.OwnerInfo.Patronymic)
-	addIfNeeded(&params, "Email", profile.Email, user.OwnerInfo.Email)
-	addIfNeeded(&params, "Phone", profile.Phone, user.OwnerInfo.Phone)
+	addStringIfNeeded(&params, "Name", profile.Name, user.OwnerInfo.Name)
+	addStringIfNeeded(&params, "Surname", profile.Surname, user.OwnerInfo.Surname)
+	addStringIfNeeded(&params, "Patronymic", profile.Patronymic, user.OwnerInfo.Patronymic)
+	addStringIfNeeded(&params, "Email", profile.Email, user.OwnerInfo.Email)
+	addStringIfNeeded(&params, "Phone", profile.Phone, user.OwnerInfo.Phone)
 	if len(params) == 0 {
-		if err != nil {
-			return nil, errors.Wrap(err, "Error while fetching profile")
-		}
-		return user.OwnerInfo, err
+		return user.OwnerInfo, nil
 	}
 	num, err := b.ormer.QueryTable(&OwnerInfo{}).
 		Filter("user_id", profile.Id).

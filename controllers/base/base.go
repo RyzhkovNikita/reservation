@@ -1,4 +1,4 @@
-package controllers
+package base
 
 import (
 	"barckend/crud"
@@ -13,42 +13,44 @@ type AuthorizationZone int
 
 const PROFILE_KEY = "payload_key"
 
-type BaseController struct {
+type Controller struct {
 	beego.Controller
 	AuthorizationZones []crud.Role
-	TokenManager       security.TokenManager
-	Crud               crud.AdminCrud
 }
 
-func (c *BaseController) InternalServerError(err error) {
+func (c *Controller) InternalServerError(err error) {
 	c.CustomAbort(500, "Internal server error\n"+err.Error())
 }
 
-func (c *BaseController) BadRequest(message string) {
+func (c *Controller) BadRequest(message string) {
 	c.CustomAbort(400, message)
 }
 
-func (c *BaseController) Unauthorized() {
+func (c *Controller) Unauthorized() {
 	c.CustomAbort(401, "")
 }
 
-func (c *BaseController) Forbidden() {
+func (c *Controller) Forbidden() {
 	c.CustomAbort(403, "")
 }
 
-func (c *BaseController) ServeJSONInternal() {
+func (c *Controller) NotFound(message string) {
+	c.CustomAbort(404, message)
+}
+
+func (c *Controller) ServeJSONInternal() {
 	if err := c.ServeJSON(); err != nil {
 		c.InternalServerError(err)
 	}
 }
 
-func (c *BaseController) Prepare() {
+func (c *Controller) Prepare() {
 	if len(c.AuthorizationZones) > 0 {
 		c.assertAuthorization()
 	}
 }
 
-func (c *BaseController) assertAuthorization() {
+func (c *Controller) assertAuthorization() {
 	authHeader := c.Ctx.Input.Header("Authorization")
 	if !strings.HasPrefix(strings.ToLower(authHeader), "bearer ") {
 		c.Unauthorized()
@@ -57,11 +59,11 @@ func (c *BaseController) assertAuthorization() {
 	if len(bearerAndToken) != 2 {
 		c.Unauthorized()
 	}
-	payload, err := c.TokenManager.VerifyToken(bearerAndToken[1], security.Access)
+	payload, err := security.GetTokenManager().VerifyToken(bearerAndToken[1], security.Access)
 	if err != nil {
 		c.Unauthorized()
 	}
-	profile, err := c.Crud.GetById(payload.UserId)
+	profile, err := crud.Db.GetById(payload.UserId)
 	if err != nil {
 		c.InternalServerError(err)
 	}
@@ -74,7 +76,7 @@ func (c *BaseController) assertAuthorization() {
 	c.Data[PROFILE_KEY] = profile
 }
 
-func (c *BaseController) GetUser() *crud.User {
+func (c *Controller) GetUser() *crud.User {
 	user, exists := c.Data[PROFILE_KEY]
 	if !exists {
 		c.InternalServerError(fmt.Errorf("no user"))

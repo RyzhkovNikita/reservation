@@ -166,6 +166,13 @@ paths:
       tags:
         - Bar
       description: Update bar and return information about it
+      parameters:
+        - in: path
+          name: bar_id
+          description: Id of the bar
+          schema:
+            type: integer
+          required: true
       requestBody:
         content:
           application/json:
@@ -188,6 +195,13 @@ paths:
       tags:
         - Bar
       description: Upload bar logo
+      parameters:
+        - in: path
+          name: bar_id
+          description: Id of the bar
+          schema:
+            type: integer
+          required: true
       requestBody:
         content:
           image/png:
@@ -340,7 +354,6 @@ paths:
             items:
               $ref: '#/components/schemas/DateString'
             example: [22.09.2022, 23.09.2022]
-            default: Today
           required: true
         - in: query
           name: table_id
@@ -521,9 +534,6 @@ components:
           type: array
           items:
             type: integer
-        max_reserv_time:
-          type: string
-          example: 1:30
 
     WorkHoursArray:
       type: array
@@ -543,9 +553,6 @@ components:
           $ref: '#/components/schemas/TimeString'
         to:
           $ref: '#/components/schemas/TimeString'
-        max_reserv_time:
-          type: string
-          example: 1:30
 
     LoginInput:
       type: object
@@ -601,16 +608,13 @@ components:
         phone:
           $ref: '#/components/schemas/PhoneNumber'
         address:
-          $ref: '#/components/schemas/Address'
+          $ref: '#/components/schemas/BarAddress'
         name:
           $ref: '#/components/schemas/BarName'
         description:
           $ref: '#/components/schemas/BarDescription'
         logo_url:
           $ref: '#/components/schemas/PhotoLink'
-        max_reserve_time:
-          type: string
-          example: 1:30
         is_visible_for_clients:
           type: boolean
           description: Define whether bar is visible for clients to reserve
