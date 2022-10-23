@@ -19,9 +19,26 @@ func (c *UploadLogoController) UploadLogo() {
 	if err != nil {
 		c.BadRequest("Invalid input")
 	}
+	contentTypes := c.Ctx.Request.Header["Content-Type"]
+	var foundContentType string
+	for _, cType := range contentTypes {
+		if cType == "image/png" || cType == "image/jpeg" {
+			foundContentType = cType
+			break
+		}
+	}
+	if foundContentType == "" {
+		c.BadRequest("Accept jpeg and png only")
+	}
+	var ext storage.ImageExtension
+	if foundContentType == "image/png" {
+		ext = storage.PNG
+	} else {
+		ext = storage.JPEG
+	}
 	photoId, err := photo.GetPhotoStorage().SavePhoto(photo.Input{
 		ByteReader: c.Ctx.Request.Body,
-		Ext:        storage.JPEG,
+		Ext:        ext,
 	})
 	if err != nil {
 		c.InternalServerError(err)
