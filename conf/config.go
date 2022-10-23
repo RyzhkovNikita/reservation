@@ -22,6 +22,7 @@ type Configuration struct {
 	FileStoragePath      string
 	AccessTokenLifetime  time.Duration
 	RefreshTokenLifetime time.Duration
+	ServerPrefix         string
 }
 
 var AppConfig Configuration
@@ -42,6 +43,8 @@ func init() {
 	errors = append(errors, err)
 	refreshTokenLifetimeSeconds, err := beego.AppConfig.Int("refreshTokenLifetimeSeconds")
 	errors = append(errors, err)
+	serverPrefix, err := beego.AppConfig.String("serverPrefix")
+	errors = append(errors, err)
 	for _, er := range errors {
 		if er != nil {
 			panic(fmt.Errorf("config is not valid: %v", er))
@@ -55,5 +58,6 @@ func init() {
 		FileStoragePath:      fileStoragePath,
 		AccessTokenLifetime:  time.Duration(accessTokenLifetimeSeconds) * time.Second,
 		RefreshTokenLifetime: time.Duration(refreshTokenLifetimeSeconds) * time.Second,
+		ServerPrefix:         serverPrefix,
 	}
 }

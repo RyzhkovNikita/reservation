@@ -18,6 +18,8 @@ func init() {
 	getBarInfo.AuthorizationZones = []crud.Role{crud.Owner, crud.Admin}
 	editBarInfo := &bar.EditController{}
 	editBarInfo.AuthorizationZones = []crud.Role{crud.Owner}
+	uploadBarLogo := &bar.UploadLogoController{}
+	uploadBarLogo.AuthorizationZones = []crud.Role{crud.Owner}
 
 	ns := beego.NewNamespace("/api/v1",
 		beego.NSNamespace(
@@ -32,6 +34,7 @@ func init() {
 			beego.NSRouter("/create", createBar, "post:CreateBar"),
 			beego.NSRouter("/:bar_id([0-9]+)", getBarInfo, "get:GetBarInformation"),
 			beego.NSRouter("/:bar_id([0-9]+)", editBarInfo, "patch:EditBar"),
+			beego.NSRouter("/:bar_id([0-9]+)/logo", uploadBarLogo, "put:UploadLogo"),
 		),
 	)
 	beego.AddNamespace(ns)

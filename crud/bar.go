@@ -72,6 +72,10 @@ func (b *barCrudImpl) GetBarById(id uint64) (*Bar, error) {
 	} else if err == orm.ErrMissPK {
 		return nil, errors.Wrap(err, fmt.Sprintf("Miss primary key for id %d", id))
 	}
+	_, err = b.ormer.LoadRelated(barInfo, "WorkHours")
+	if err != nil {
+		return nil, errors.Wrap(err, "Error while loading related work hours")
+	}
 	return barInfo, nil
 }
 
@@ -97,8 +101,15 @@ func (b *barCrudImpl) UpdateBar(updateBar *UpdateBar, barInfo *Bar) (*Bar, error
 		if barInfoDb == nil {
 			return nil, errors.New(fmt.Sprintf("No bar was found with provided id: %d", updateBar.Id))
 		}
+		barInfo = barInfoDb
 	} else if updateBar.Id != barInfo.Id {
 		return nil, errors.New("Provided bar info and update info has different ids")
+	}
+	if len(updateBar.WorkHours) != 0 {
+		err := b.UpdateWorkHours(updateBar.Id, updateBar.WorkHours)
+		if err != nil {
+			return nil, errors.Wrap(err, "Error while updating work hours")
+		}
 	}
 	params := orm.Params{}
 	addStringIfNeeded(&params, "Email", updateBar.Email, barInfo.Email)
@@ -125,4 +136,28 @@ func (b *barCrudImpl) UpdateBar(updateBar *UpdateBar, barInfo *Bar) (*Bar, error
 		return nil, errors.Wrap(err, "Error while fetching bar")
 	}
 	return updatedBar, nil
+}
+
+func (b *barCrudImpl) UpdateWorkHours(barId uint64, newWorkHours []WorkHours) error {
+	ormTransaction, err := b.ormer.Begin()
+	if err != nil {
+		ormTransaction.Rollback()
+		return errors.Wrap(err, "Error when start transaction")
+	}
+	_, err = ormTransaction.QueryTable(&WorkHours{}).Filter("bar_id", barId).Delete()
+	if err != nil {
+		ormTransaction.Rollback()
+		return errors.Wrap(err, "Error when deleting work hours")
+	}
+	_, err = ormTransaction.InsertMulti(len(newWorkHours), newWorkHours)
+	if err != nil {
+		ormTransaction.Rollback()
+		return errors.Wrap(err, "Error when inserting new work hours")
+	}
+	err = ormTransaction.Commit()
+	if err != nil {
+		ormTransaction.Rollback()
+		return errors.Wrap(err, "Error when committing transaction")
+	}
+	return nil
 }

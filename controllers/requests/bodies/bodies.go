@@ -63,10 +63,25 @@ type CreateBarInfo struct {
 	WorkHours   []WorkHours `json:"work_hours"  valid:"Required; MaxSize(7)"`
 }
 
+func (form *CreateBarInfo) Valid(validation *validation.Validation) {
+	Validate(validation, form.WorkHours)
+}
+
+func Validate(validation *validation.Validation, workHours []WorkHours) {
+	for _, wh := range workHours {
+		isValid, err := validation.Valid(wh)
+		if err != nil {
+			validation.AddError("Internal error", "Internal error occurred while validating")
+		} else if !isValid {
+			validation.AddError("WorkHours", "Work hours are invalid")
+		}
+	}
+}
+
 type WorkHours struct {
-	Weekday uint   `json:"weekday" valid:"Required; Range(1,7)"`
-	From    string `json:"from" valid:"Required; Match(^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$)"`
-	To      string `json:"to" valid:"Required; Match(^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$)"`
+	Weekday int8   `json:"weekday" valid:"Required; Range(1,7)"`
+	From    string `json:"from" valid:"Required; Match(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)"`
+	To      string `json:"to" valid:"Required; Match(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)"`
 }
 
 type UpdateProfile struct {
@@ -133,14 +148,6 @@ func (form *UpdateBar) Valid(validation *validation.Validation) {
 	}
 	if form.WorkHours != nil {
 		validation.MaxSize(form.WorkHours, 7, "work_hours")
-		for _, wh := range *form.WorkHours {
-			isValid, err := validation.Valid(wh)
-			if err != nil {
-				validation.AddError("Internal error", "Internal error occurred while validating")
-			}
-			if !isValid {
-				validation.AddError("WorkHours", "Work hours are invalid")
-			}
-		}
+		Validate(validation, *form.WorkHours)
 	}
 }

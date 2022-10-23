@@ -45,7 +45,7 @@ func (m modelMapperImpl) WorkHoursListInToDb(barId uint64, workHours []bodies.Wo
 	workHoursOut := make([]crud.WorkHours, len(workHours))
 	for index, workHourIn := range workHours {
 		workHourOut := crud.WorkHours{
-			Weekday: workHourIn.Weekday,
+			Weekday: uint(workHourIn.Weekday),
 			From:    workHourIn.From,
 			To:      workHourIn.To,
 			Bar:     &crud.Bar{Id: barId},
@@ -57,8 +57,8 @@ func (m modelMapperImpl) WorkHoursListInToDb(barId uint64, workHours []bodies.Wo
 
 func (m modelMapperImpl) BarInfoDbToNet(bar *crud.Bar) *responses.BarInfoResponse {
 	var adminIds = make([]uint64, len(bar.Admins))
-	for _, admin := range bar.Admins {
-		adminIds = append(adminIds, admin.Id)
+	for i, admin := range bar.Admins {
+		adminIds[i] = admin.Id
 	}
 	return &responses.BarInfoResponse{
 		Id:          bar.Id,
@@ -71,5 +71,18 @@ func (m modelMapperImpl) BarInfoDbToNet(bar *crud.Bar) *responses.BarInfoRespons
 		Admins:      adminIds,
 		LogoUrl:     bar.LogoUrl,
 		IsVisible:   bar.IsVisible,
+		WorkHours:   m.WorkHoursListDbToNet(bar.WorkHours),
 	}
+}
+
+func (m modelMapperImpl) WorkHoursListDbToNet(workHours []*crud.WorkHours) []responses.WorkHours {
+	workHoursOut := make([]responses.WorkHours, len(workHours))
+	for i, wh := range workHours {
+		workHoursOut[i] = responses.WorkHours{
+			Weekday: wh.Weekday,
+			From:    wh.From,
+			To:      wh.To,
+		}
+	}
+	return workHoursOut
 }
