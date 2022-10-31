@@ -27,6 +27,13 @@ type BarCrud interface {
 	GetWorkHoursForBar(barId uint64) ([]*WorkHours, error)
 	IsNameOccupiedByAnotherOwner(ownerId uint64, name string) (bool, error)
 	UpdateBar(updateBar *UpdateBar, barInfo *Bar) (*Bar, error)
+	GetBarIdsForOwner(ownerId uint64) ([]uint64, error)
+	GetBarForAdmin(adminId uint64) (*Bar, error)
+	GetTableByName(barId uint64, tableName string) (*Table, error)
+	InsertTable(table *Table) (*Table, error)
+	UpdateTable(table *UpdateTable) (*Table, error)
+	RemoveTable(tableId uint64) error
+	GetAllTables(barId uint64) ([]*Table, error)
 }
 
 type barCrudImpl struct {
@@ -54,7 +61,7 @@ func (b *barCrudImpl) InsertWorkHours(barId uint64, workHoursList []WorkHours) (
 }
 
 func (b *barCrudImpl) GetWorkHoursForBar(barId uint64) ([]*WorkHours, error) {
-	var workHourListActual = make([]*WorkHours, 7)
+	var workHourListActual = make([]*WorkHours, 0, 7)
 	_, err := b.ormer.QueryTable(&WorkHours{}).Filter("bar_id", barId).All(&workHourListActual)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error while querying work hours, barId="+strconv.FormatUint(barId, 10))
@@ -160,4 +167,79 @@ func (b *barCrudImpl) UpdateWorkHours(barId uint64, newWorkHours []WorkHours) er
 		return errors.Wrap(err, "Error when committing transaction")
 	}
 	return nil
+}
+
+func (b *barCrudImpl) GetBarIdsForOwner(ownerId uint64) ([]uint64, error) {
+	var barList = make([]*Bar, 0, 5)
+	_, err := b.ormer.QueryTable(&Bar{}).
+		Filter("owner_info_id", ownerId).
+		All(&barList)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error while querying bar list, ownerId="+strconv.FormatUint(ownerId, 10))
+	}
+	ids := make([]uint64, 0, len(barList))
+	for _, bar := range barList {
+		ids = append(ids, bar.Id)
+	}
+	return ids, nil
+}
+
+func (b *barCrudImpl) GetBarForAdmin(adminId uint64) (*Bar, error) {
+	adminInfo := &AdminInfo{}
+	err := b.ormer.QueryTable(adminInfo).Filter("id", adminId).One(adminInfo)
+	if err == orm.ErrNoRows {
+		return nil, nil
+	} else if err == orm.ErrMissPK {
+		return nil, errors.Wrap(err, fmt.Sprintf("Miss primary key for id %d", adminId))
+	}
+	_, err = b.ormer.LoadRelated(adminInfo, "Bar")
+	if err != nil {
+		return nil, nil
+	}
+	return adminInfo.Bar, nil
+}
+
+func (b *barCrudImpl) GetTableByName(barId uint64, tableName string) (*Table, error) {
+	tableInfo := &Table{}
+	err := b.ormer.QueryTable(tableInfo).
+		Filter("name", tableName).
+		Filter("bar_info_id", barId).
+		One(tableInfo)
+	if err == orm.ErrNoRows {
+		return nil, nil
+	}
+	return tableInfo, nil
+}
+
+func (b *barCrudImpl) InsertTable(table *Table) (*Table, error) {
+	id, err := b.ormer.Insert(table)
+	if err != nil {
+		return nil, errors.Wrap(
+			err,
+			fmt.Sprintf("Insert table error occured. Table: %v", table),
+		)
+	}
+	table.Id = uint64(id)
+	return table, nil
+}
+
+func (b *barCrudImpl) UpdateTable(table *UpdateTable) (*Table, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (b *barCrudImpl) RemoveTable(tableId uint64) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (b *barCrudImpl) GetAllTables(barId uint64) ([]*Table, error) {
+	tableList := make([]*Table, 0, 15)
+	_, err := b.ormer.QueryTable(&Table{}).
+		Filter("bar_info_id", barId).
+		All(&tableList)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error while querying table list, barId="+strconv.FormatUint(barId, 10))
+	}
+	return tableList, nil
 }

@@ -26,6 +26,5 @@ func (c *InfoController) GetBarInformation() {
 		c.NotFound("No bar with provided id: " + strconv.FormatInt(int64(in.BarId), 10))
 	}
 	barInfoOut := mapping.Mapper.BarInfoDbToNet(barInfoDb)
-	c.Data["json"] = barInfoOut
-	c.ServeJSONInternal()
+	c.ServeJSONInternal(barInfoOut)
 }

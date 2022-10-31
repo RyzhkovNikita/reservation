@@ -13,6 +13,8 @@ type ModelMapper interface {
 	OwnerDbToNet(profile *crud.OwnerInfo) *responses.ProfileResponse
 	WorkHoursListInToDb(barId uint64, workHours []bodies.WorkHours) []crud.WorkHours
 	BarInfoDbToNet(bar *crud.Bar) *responses.BarInfoResponse
+	TableInfoDbToNet(tableInfo *crud.Table) responses.TableInfo
+	TableInfoListDbToNet(tableInfoList []*crud.Table) []responses.TableInfo
 }
 
 type modelMapperImpl struct{}
@@ -85,4 +87,21 @@ func (m modelMapperImpl) WorkHoursListDbToNet(workHours []*crud.WorkHours) []res
 		}
 	}
 	return workHoursOut
+}
+
+func (m modelMapperImpl) TableInfoDbToNet(tableInfo *crud.Table) responses.TableInfo {
+	return responses.TableInfo{
+		Id:          tableInfo.Id,
+		Name:        tableInfo.Name,
+		Description: tableInfo.Description,
+		Capacity:    uint8(tableInfo.Capacity),
+	}
+}
+
+func (m modelMapperImpl) TableInfoListDbToNet(tableInfoList []*crud.Table) []responses.TableInfo {
+	result := make([]responses.TableInfo, 0, len(tableInfoList))
+	for _, tableinfo := range tableInfoList {
+		result = append(result, m.TableInfoDbToNet(tableinfo))
+	}
+	return result
 }

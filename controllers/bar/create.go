@@ -40,6 +40,5 @@ func (c *CreateController) CreateBar() {
 		mapping.Mapper.WorkHoursListInToDb(createdBar.Id, barInfo.WorkHours),
 	)
 	createdBar.WorkHours = workHours
-	c.Data["json"] = mapping.Mapper.BarInfoDbToNet(createdBar)
-	c.ServeJSONInternal()
+	c.ServeJSONInternal(mapping.Mapper.BarInfoDbToNet(createdBar))
 }

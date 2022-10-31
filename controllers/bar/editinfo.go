@@ -17,13 +17,11 @@ type EditController struct {
 
 func (c EditController) EditBar() {
 	in := &input.BarIdInPathInput{}
-	err := input.ParseInput(c.Ctx.Input, in)
-	if err != nil {
+	if err := input.ParseInput(c.Ctx.Input, in); err != nil {
 		c.BadRequest("Invalid input")
 	}
 	updateInfo := &bodies.UpdateBar{}
-	err = bodies.Require(updateInfo, c.Ctx.Input.RequestBody)
-	if err != nil {
+	if err := bodies.Require(updateInfo, c.Ctx.Input.RequestBody); err != nil {
 		c.BadRequest(err.Error())
 	}
 	barInfoDb, err := crud.GetBarCrud().GetBarById(uint64(in.BarId))
@@ -66,6 +64,5 @@ func (c EditController) EditBar() {
 	if updatedBar == nil {
 		c.InternalServerError(errors.New("no bar found after update"))
 	}
-	c.Data["json"] = mapping.Mapper.BarInfoDbToNet(updatedBar)
-	c.ServeJSONInternal()
+	c.ServeJSONInternal(mapping.Mapper.BarInfoDbToNet(updatedBar))
 }

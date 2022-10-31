@@ -15,12 +15,16 @@ type ProfileController struct {
 
 func (c *ProfileController) GetMe() {
 	user := c.GetUser()
+	var responseModel any = nil
 	if user.IsAdmin() {
-		c.Data["json"] = mapping.Mapper.AdminDbToNet(user.AdminInfo)
+		responseModel = mapping.Mapper.AdminDbToNet(user.AdminInfo)
 	} else if user.IsOwner() {
-		c.Data["json"] = mapping.Mapper.OwnerDbToNet(user.OwnerInfo)
+		responseModel = mapping.Mapper.OwnerDbToNet(user.OwnerInfo)
 	}
-	c.ServeJSONInternal()
+	if responseModel == nil {
+		c.InternalServerError(errors.New("no user wtf"))
+	}
+	c.ServeJSONInternal(responseModel)
 }
 
 func (c *ProfileController) PatchMe() {
@@ -79,12 +83,16 @@ func (c *ProfileController) PatchMe() {
 	if adminInfo == nil && ownerInfo == nil {
 		c.InternalServerError(errors.New("no user found after update"))
 	}
+	var responseModel any = nil
 	if userMe.IsAdmin() {
-		c.Data["json"] = mapping.Mapper.AdminDbToNet(adminInfo)
+		responseModel = mapping.Mapper.AdminDbToNet(adminInfo)
 	} else if userMe.IsOwner() {
-		c.Data["json"] = mapping.Mapper.OwnerDbToNet(ownerInfo)
+		responseModel = mapping.Mapper.OwnerDbToNet(ownerInfo)
 	} else {
 		c.InternalServerError(errors.New("WTF"))
 	}
-	c.ServeJSONInternal()
+	if responseModel == nil {
+		c.InternalServerError(errors.New("no user wtf"))
+	}
+	c.ServeJSONInternal(responseModel)
 }

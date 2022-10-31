@@ -35,3 +35,10 @@ type AuthorizationPayload struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 }
+
+type TableInfo struct {
+	Id          uint64 `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Capacity    uint8  `json:"persons"`
+}

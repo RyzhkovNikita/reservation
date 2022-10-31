@@ -38,7 +38,8 @@ func (c *Controller) NotFound(message string) {
 	c.CustomAbort(404, message)
 }
 
-func (c *Controller) ServeJSONInternal() {
+func (c *Controller) ServeJSONInternal(responseModel any) {
+	c.Data["json"] = responseModel
 	if err := c.ServeJSON(); err != nil {
 		c.InternalServerError(err)
 	}
@@ -86,4 +87,33 @@ func (c *Controller) GetUser() *crud.User {
 		c.InternalServerError(fmt.Errorf("user cast error"))
 	}
 	return p
+}
+
+func (c *Controller) BarAccessCheck(barIdToAccess uint64) {
+	updater := c.GetUser()
+	if updater.IsAdmin() {
+		bar, err := crud.GetBarCrud().GetBarForAdmin(updater.AdminInfo.Id)
+		if err != nil {
+			c.InternalServerError(err)
+		}
+		if bar == nil || bar.Id != barIdToAccess {
+			c.Forbidden()
+		}
+	}
+	if updater.IsOwner() {
+		barIds, err := crud.GetBarCrud().GetBarIdsForOwner(updater.OwnerInfo.Id)
+		if err != nil {
+			c.InternalServerError(err)
+		}
+		userOweBar := false
+		for _, id := range barIds {
+			if id == barIdToAccess {
+				userOweBar = true
+				break
+			}
+		}
+		if !userOweBar {
+			c.Forbidden()
+		}
+	}
 }

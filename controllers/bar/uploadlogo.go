@@ -56,6 +56,5 @@ func (c *UploadLogoController) UploadLogo() {
 	if err != nil {
 		c.InternalServerError(err)
 	}
-	c.Data["json"] = logoUrl
-	c.ServeJSONInternal()
+	c.ServeJSONInternal(logoUrl)
 }

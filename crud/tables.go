@@ -97,11 +97,9 @@ type Weekday struct {
 type Table struct {
 	Id          uint64 `orm:"auto"`
 	Name        string `orm:"size(30)"`
-	Description string `orm:"size(30)"`
-	Email       string `orm:"size(30)"`
+	Description string `orm:"size(100)"`
 	Capacity    uint
-	PhotoUrl    string `orm:"size(255)"`
-	BarInfo     *Bar   `orm:"rel(one);on_delete(cascade)"`
+	BarInfo     *Bar `orm:"rel(fk);on_delete(cascade)"`
 }
 
 type Reservation struct {

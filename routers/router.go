@@ -3,6 +3,7 @@ package routers
 import (
 	"barckend/controllers"
 	"barckend/controllers/bar"
+	"barckend/controllers/table"
 	"barckend/crud"
 	beego "github.com/beego/beego/v2/server/web"
 )
@@ -20,6 +21,10 @@ func init() {
 	editBarInfo.AuthorizationZones = []crud.Role{crud.Owner}
 	uploadBarLogo := &bar.UploadLogoController{}
 	uploadBarLogo.AuthorizationZones = []crud.Role{crud.Owner}
+	createTable := &table.CreateController{}
+	createTable.AuthorizationZones = []crud.Role{crud.Owner, crud.Admin}
+	getAllTables := &table.GetAllController{}
+	getAllTables.AuthorizationZones = []crud.Role{crud.Owner, crud.Admin}
 
 	ns := beego.NewNamespace("/api/v1",
 		beego.NSNamespace(
@@ -35,6 +40,11 @@ func init() {
 			beego.NSRouter("/:bar_id([0-9]+)", getBarInfo, "get:GetBarInformation"),
 			beego.NSRouter("/:bar_id([0-9]+)", editBarInfo, "patch:EditBar"),
 			beego.NSRouter("/:bar_id([0-9]+)/logo", uploadBarLogo, "put:UploadLogo"),
+		),
+		beego.NSNamespace(
+			"/table",
+			beego.NSRouter("/create", createTable, "post:CreateTable"),
+			beego.NSRouter("/all", getAllTables, "get:GetAllTables"),
 		),
 	)
 	beego.AddNamespace(ns)

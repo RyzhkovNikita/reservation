@@ -151,3 +151,10 @@ func (form *UpdateBar) Valid(validation *validation.Validation) {
 		Validate(validation, *form.WorkHours)
 	}
 }
+
+type CreateTable struct {
+	BarId       int64   `json:"bar_id" valid:"Required"`
+	Name        string  `json:"name" valid:"Required; MinSize(1); MaxSize(30)"`
+	Capacity    int8    `json:"persons" valid:"Required; Range(1,70)"`
+	Description *string `json:"description,omitempty"`
+}

@@ -246,10 +246,16 @@ paths:
         400:
           description: Invalid information is provided
 
-  /table/all:
+  /table/all?bar_id={bar_id}:
     get:
       tags:
         - Table
+      parameters:
+        - in: query
+          name: bar_id
+          schema:
+            type: integer
+          required: true
       summary: Get list of created tables
       responses:
         200:
@@ -274,11 +280,6 @@ paths:
           schema:
             type: integer
           required: true
-        - in: path
-          name: bar_id
-          schema:
-            type: integer
-          required: true
       responses:
         200:
           description: Successful update
@@ -297,11 +298,6 @@ paths:
       parameters:
         - in: path
           name: table_id
-          schema:
-            type: integer
-          required: true
-        - in: path
-          name: bar_id
           schema:
             type: integer
           required: true
@@ -326,11 +322,6 @@ paths:
       parameters:
         - in: path
           name: table_id
-          schema:
-            type: integer
-          required: true
-        - in: path
-          name: bar_id
           schema:
             type: integer
           required: true

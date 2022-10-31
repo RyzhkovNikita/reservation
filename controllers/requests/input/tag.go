@@ -4,6 +4,7 @@ import (
 	"github.com/pkg/errors"
 	"reflect"
 	"strconv"
+	"strings"
 )
 import "github.com/beego/beego/v2/server/web/context"
 
@@ -20,7 +21,30 @@ func ParseInput(input *context.BeegoInput, model interface{}) error {
 		if tag == "" || tag == "-" {
 			continue
 		}
-		param := input.Param(tag)
+		params := strings.Split(tag, ";")
+		var paramName string
+		var findInPath bool
+		var findInQuery bool
+		for _, str := range params {
+			if strings.HasPrefix(str, ":") {
+				paramName = str
+			} else if str == "in_path" {
+				findInPath = true
+			} else if str == "in_query" {
+				findInQuery = true
+			}
+		}
+		if paramName == "" {
+			continue
+		}
+		var param string
+		if findInPath {
+			param = input.Param(paramName)
+		}
+		if param == "" && findInQuery {
+			_, after, _ := strings.Cut(paramName, ":")
+			param = input.Query(after)
+		}
 		if param == "" {
 			return errors.New("No parameter '" + string(tag) + "' in input")
 		}
