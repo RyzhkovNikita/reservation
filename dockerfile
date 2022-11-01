@@ -6,5 +6,6 @@ ENV APP_HOME /go/src/barckend
 RUN mkdir -p "$APP_HOME"
 WORKDIR "$APP_HOME"
 COPY ./ ./
+RUN go build
 EXPOSE 8000
-CMD ["bee", "run"]
+ENTRYPOINT ["bee", "run"]
