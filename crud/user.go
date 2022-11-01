@@ -276,6 +276,16 @@ func addBoolIfNeeded(params *orm.Params, key string, newValue *bool, oldValue bo
 	(*params)[key] = newValue
 }
 
+func addIntIfNeeded(params *orm.Params, key string, newValue *int, oldValue int) {
+	if newValue == nil {
+		return
+	}
+	if *newValue == oldValue {
+		return
+	}
+	(*params)[key] = newValue
+}
+
 func (b *userCrudImpl) UpdateOwner(profile *UpdateOwnerInfo) (*OwnerInfo, error) {
 	user, err := b.GetById(profile.Id)
 	if err != nil {

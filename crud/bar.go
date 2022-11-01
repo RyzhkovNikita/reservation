@@ -29,9 +29,10 @@ type BarCrud interface {
 	UpdateBar(updateBar *UpdateBar, barInfo *Bar) (*Bar, error)
 	GetBarIdsForOwner(ownerId uint64) ([]uint64, error)
 	GetBarForAdmin(adminId uint64) (*Bar, error)
+	GetTableById(tableId uint64) (*Table, error)
 	GetTableByName(barId uint64, tableName string) (*Table, error)
 	InsertTable(table *Table) (*Table, error)
-	UpdateTable(table *UpdateTable) (*Table, error)
+	UpdateTable(table *UpdateTable, existingTable *Table) (*Table, error)
 	RemoveTable(tableId uint64) error
 	GetAllTables(barId uint64) ([]*Table, error)
 }
@@ -199,6 +200,21 @@ func (b *barCrudImpl) GetBarForAdmin(adminId uint64) (*Bar, error) {
 	return adminInfo.Bar, nil
 }
 
+func (b *barCrudImpl) GetTableById(tableId uint64) (*Table, error) {
+	tableInfo := &Table{}
+	err := b.ormer.QueryTable(tableInfo).Filter("id", tableId).One(tableInfo)
+	if err == orm.ErrNoRows {
+		return nil, nil
+	} else if err == orm.ErrMissPK {
+		return nil, errors.Wrap(err, fmt.Sprintf("Miss primary key for id %d", tableId))
+	}
+	_, err = b.ormer.LoadRelated(tableInfo, "BarInfo")
+	if err != nil {
+		return nil, errors.Wrap(err, "Error when tried to load related bar for tableId="+strconv.FormatUint(tableId, 10))
+	}
+	return tableInfo, nil
+}
+
 func (b *barCrudImpl) GetTableByName(barId uint64, tableName string) (*Table, error) {
 	tableInfo := &Table{}
 	err := b.ormer.QueryTable(tableInfo).
@@ -223,14 +239,48 @@ func (b *barCrudImpl) InsertTable(table *Table) (*Table, error) {
 	return table, nil
 }
 
-func (b *barCrudImpl) UpdateTable(table *UpdateTable) (*Table, error) {
-	//TODO implement me
-	panic("implement me")
+func (b *barCrudImpl) UpdateTable(table *UpdateTable, existingTable *Table) (*Table, error) {
+	if existingTable == nil {
+		tableInfoDb, err := b.GetTableById(table.Id)
+		if err != nil {
+			return nil, err
+		}
+		if tableInfoDb == nil {
+			return nil, errors.New(fmt.Sprintf("No table was found with provided id: %d", table.Id))
+		}
+		existingTable = tableInfoDb
+	} else if table.Id != existingTable.Id {
+		return nil, errors.New("Provided table info and update info has different ids")
+	}
+	params := orm.Params{}
+	addStringIfNeeded(&params, "Name", table.Name, existingTable.Name)
+	addStringIfNeeded(&params, "Description", table.Description, existingTable.Description)
+	addIntIfNeeded(&params, "Capacity", table.Capacity, int(existingTable.Capacity))
+	if len(params) == 0 {
+		return existingTable, nil
+	}
+	num, err := b.ormer.QueryTable(&Table{}).
+		Filter("id", table.Id).
+		Update(params)
+	if num == 0 {
+		return nil, NoRowsUpdated
+	}
+	if err != nil {
+		return nil, errors.Wrap(err, "Error while updating table")
+	}
+	updatedTable, err := b.GetTableById(table.Id)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error while fetching table")
+	}
+	return updatedTable, nil
 }
 
 func (b *barCrudImpl) RemoveTable(tableId uint64) error {
-	//TODO implement me
-	panic("implement me")
+	_, err := b.ormer.Delete(&Table{Id: tableId})
+	if err != nil {
+		return errors.Wrap(err, "Error while deleting")
+	}
+	return nil
 }
 
 func (b *barCrudImpl) GetAllTables(barId uint64) ([]*Table, error) {

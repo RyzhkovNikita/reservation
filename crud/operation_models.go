@@ -35,5 +35,5 @@ type UpdateTable struct {
 	Id          uint64
 	Name        *string
 	Description *string
-	Capacity    *uint8
+	Capacity    *int
 }

@@ -158,3 +158,22 @@ type CreateTable struct {
 	Capacity    int8    `json:"persons" valid:"Required; Range(1,70)"`
 	Description *string `json:"description,omitempty"`
 }
+
+type UpdateTable struct {
+	Name        *string `json:"name,omitempty"`
+	Description *string `json:"description,omitempty"`
+	Capacity    *int    `json:"capacity,omitempty"`
+}
+
+func (form *UpdateTable) Valid(validation *validation.Validation) {
+	if form.Name != nil {
+		validation.MinSize(form.Name, 1, "name")
+		validation.MaxSize(form.Name, 30, "name")
+	}
+	if form.Capacity != nil {
+		validation.Range(form.Capacity, 1, 70, "capacity")
+	}
+	if form.Description != nil {
+		validation.MaxSize(form.Name, 400, "description")
+	}
+}

@@ -25,6 +25,12 @@ func init() {
 	createTable.AuthorizationZones = []crud.Role{crud.Owner, crud.Admin}
 	getAllTables := &table.GetAllController{}
 	getAllTables.AuthorizationZones = []crud.Role{crud.Owner, crud.Admin}
+	getTable := &table.GetController{}
+	getTable.AuthorizationZones = []crud.Role{crud.Owner, crud.Admin}
+	updateTable := &table.UpdateController{}
+	updateTable.AuthorizationZones = []crud.Role{crud.Owner, crud.Admin}
+	deleteTable := &table.DeleteController{}
+	deleteTable.AuthorizationZones = []crud.Role{crud.Owner, crud.Admin}
 
 	ns := beego.NewNamespace("/api/v1",
 		beego.NSNamespace(
@@ -45,6 +51,9 @@ func init() {
 			"/table",
 			beego.NSRouter("/create", createTable, "post:CreateTable"),
 			beego.NSRouter("/all", getAllTables, "get:GetAllTables"),
+			beego.NSRouter("/:table_id([0-9]+)", getTable, "get:GetTableById"),
+			beego.NSRouter("/:table_id([0-9]+)", updateTable, "patch:UpdateTableById"),
+			beego.NSRouter("/:table_id([0-9]+)", deleteTable, "delete:DeleteTableById"),
 		),
 	)
 	beego.AddNamespace(ns)
