@@ -10,7 +10,6 @@ import (
 
 func init() {
 	authorization := &controllers.AuthorizationController{}
-
 	profile := &controllers.ProfileController{}
 	profile.AuthorizationZones = []crud.Role{crud.Admin, crud.Owner}
 	createBar := &bar.CreateController{}
