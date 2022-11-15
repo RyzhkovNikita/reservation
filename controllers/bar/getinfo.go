@@ -25,6 +25,9 @@ func (c *InfoController) GetBarInformation() {
 	if barInfoDb == nil {
 		c.NotFound("No bar with provided id: " + strconv.FormatInt(int64(in.BarId), 10))
 	}
-	barInfoOut := mapping.Mapper.BarInfoDbToNet(barInfoDb)
-	c.ServeJSONInternal(barInfoOut)
+	barInfoResponse, err := mapping.Mapper.BarInfoDbToNet(barInfoDb)
+	if err != nil {
+		c.InternalServerError(err)
+	}
+	c.ServeJSONInternal(barInfoResponse)
 }

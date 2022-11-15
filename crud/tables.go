@@ -83,9 +83,9 @@ type Bar struct {
 type WorkHours struct {
 	Id      uint64 `orm:"auto"`
 	Weekday uint
-	From    string `orm:"size(5)"`
-	To      string `orm:"size(5)"`
-	Bar     *Bar   `orm:"rel(fk);on_delete(cascade)"`
+	From    orm.DateTimeField
+	To      orm.DateTimeField
+	Bar     *Bar `orm:"rel(fk);on_delete(cascade)"`
 }
 
 type Weekday struct {
@@ -103,12 +103,29 @@ type Table struct {
 }
 
 type Reservation struct {
-	Id           uint64            `orm:"auto"`
-	From         string            `orm:"size(5)"`
-	To           string            `orm:"size(5)"`
+	Id           uint64 `orm:"auto"`
+	From         orm.DateTimeField
+	To           orm.DateTimeField
+	Date         orm.DateField
+	PersonCount  uint8
+	Comment      *string           `orm:"null;size(100)"`
 	CreationTime orm.DateTimeField `orm:"auto_now_add"`
 	ModifyTime   orm.DateTimeField `orm:"auto_now"`
-	Date         orm.DateField
-	Table        *Table     `orm:"rel(one);on_delete(cascade)"`
-	Guest        *GuestInfo `orm:"rel(one);on_delete(cascade)"`
+	Table        *Table            `orm:"rel(fk);on_delete(cascade)"`
+	Guest        *GuestInfo        `orm:"null;rel(fk);on_delete(cascade)"`
+}
+
+func (r Reservation) IsInterceptingWith(other Reservation) bool {
+	thisFrom, thisTo := r.From.Value(), r.To.Value()
+	otherFrom, otherTo := other.From.Value(), other.To.Value()
+	if thisFrom.Equal(otherFrom) || thisTo.Equal(otherTo) {
+		return true
+	}
+	if thisTo.Before(otherFrom) ||
+		thisTo.Equal(otherFrom) ||
+		thisFrom.After(otherTo) ||
+		thisFrom.Equal(otherTo) {
+		return false
+	}
+	return true
 }

@@ -42,3 +42,16 @@ type TableInfo struct {
 	Description string `json:"description"`
 	Capacity    uint8  `json:"persons"`
 }
+
+type Reservation struct {
+	Id          uint64  `json:"id"`
+	BarId       uint64  `json:"bar_id"`
+	TableId     uint64  `json:"table_id"`
+	From        string  `json:"from_time"`
+	PersonCount uint8   `json:"persons"`
+	To          string  `json:"to_time"`
+	Guest       *string `json:"guest,omitempty"`
+	Date        string  `json:"date"`
+	IsTech      bool    `json:"is_tech"`
+	Comment     *string `json:"comment,omitempty"`
+}

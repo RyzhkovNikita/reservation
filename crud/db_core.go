@@ -42,4 +42,5 @@ func init() {
 		ormer: newOrm,
 	}
 	initializeBarCrud(newOrm)
+	initReservCrud(newOrm)
 }

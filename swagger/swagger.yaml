@@ -371,16 +371,16 @@ paths:
         400:
           description: Invalid date format
 
-  /reserv/{reserv_id}:
+  /reserv/create:
     post:
       tags:
         - Reservation
-      parameters:
-        - in: path
-          name: reserv_id
-          schema:
-            type: integer
-          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReservation'
       responses:
         200:
           description: Successful response
@@ -392,6 +392,8 @@ paths:
           $ref: '#/components/responses/ReservationNotFound'
         401:
           $ref: '#/components/responses/UnauthorizedError'
+
+  /reserv/{reserv_id}:
     patch:
       tags:
         - Reservation
@@ -583,6 +585,19 @@ components:
         description:
           $ref: '#/components/schemas/TableDescription'
 
+    CreateReservation:
+      type: object
+      required: [table_id, from_time, to_time, date]
+      properties:
+        from_time:
+          $ref: '#/components/schemas/TimeString'
+        to_time:
+          $ref: '#/components/schemas/TimeString'
+        date:
+          $ref: '#/components/schemas/DateString'
+        table_id:
+          $ref: '#/components/schemas/Identifier'
+
     ModifyReservation:
       type: object
       properties:
@@ -656,16 +671,13 @@ components:
 
     GuestResponse:
       type: object
-      required: [id, name, photo_url, phone_number]
+      required: [id, name, phone_number]
       properties:
         id:
           $ref: '#/components/schemas/Identifier'
         name:
           type: string
           maxLength: 30
-        photo_url:
-          type: string
-          example: http://10.11.0.64/images/1oc1km1wkm.png
         phone_number:
           $ref: '#/components/schemas/PhoneNumber'
 
@@ -762,17 +774,26 @@ components:
 
     ReservationResponse:
       type: object
-      required: [id, table_id, guest, date, time]
+      required: [id, bar_id, table_id, date, from_time, to_time, is_tech]
       properties:
         id:
           $ref: '#/components/schemas/Identifier'
+        bar_id:
+          $ref: '#/components/schemas/Identifier'
         table_id:
           $ref: '#/components/schemas/Identifier'
+        is_tech:
+          type: boolean
+          description: "Define whether this reservation is created by admin or owner"
+        persons:
+          $ref: '#/components/schemas/TablePersons'
         guest:
           $ref: '#/components/schemas/GuestResponse'
         date:
           $ref: '#/components/schemas/DateString'
-        time:
+        from_time:
+          $ref: '#/components/schemas/TimeString'
+        to_time:
           $ref: '#/components/schemas/TimeString'
         comment:
           type: string

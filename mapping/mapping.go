@@ -4,6 +4,10 @@ import (
 	"barckend/controllers/requests/bodies"
 	"barckend/controllers/responses"
 	"barckend/crud"
+	"barckend/timing"
+	"github.com/beego/beego/v2/client/orm"
+	"github.com/pkg/errors"
+	"time"
 )
 
 var Mapper ModelMapper = modelMapperImpl{}
@@ -11,10 +15,11 @@ var Mapper ModelMapper = modelMapperImpl{}
 type ModelMapper interface {
 	AdminDbToNet(profile *crud.AdminInfo) *responses.ProfileResponse
 	OwnerDbToNet(profile *crud.OwnerInfo) *responses.ProfileResponse
-	WorkHoursListInToDb(barId uint64, workHours []bodies.WorkHours) []crud.WorkHours
-	BarInfoDbToNet(bar *crud.Bar) *responses.BarInfoResponse
+	WorkHoursListInToDb(barId uint64, workHours []bodies.WorkHours) ([]crud.WorkHours, error)
+	BarInfoDbToNet(bar *crud.Bar) (*responses.BarInfoResponse, error)
 	TableInfoDbToNet(tableInfo *crud.Table) responses.TableInfo
 	TableInfoListDbToNet(tableInfoList []*crud.Table) []responses.TableInfo
+	ReservationDbToNet(reservation *crud.Reservation) (responses.Reservation, error)
 }
 
 type modelMapperImpl struct{}
@@ -43,24 +48,36 @@ func (m modelMapperImpl) OwnerDbToNet(profile *crud.OwnerInfo) *responses.Profil
 	}
 }
 
-func (m modelMapperImpl) WorkHoursListInToDb(barId uint64, workHours []bodies.WorkHours) []crud.WorkHours {
+func (m modelMapperImpl) WorkHoursListInToDb(barId uint64, workHours []bodies.WorkHours) ([]crud.WorkHours, error) {
 	workHoursOut := make([]crud.WorkHours, len(workHours))
 	for index, workHourIn := range workHours {
+		fromTime, err := timing.GetConverter().StringToTime(workHourIn.From)
+		if err != nil {
+			return nil, errors.Wrap(err, "Error when tried to parse work hours time")
+		}
+		toTime, err := timing.GetConverter().StringToTime(workHourIn.To)
+		if err != nil {
+			return nil, errors.Wrap(err, "Error when tried to parse work hours time")
+		}
 		workHourOut := crud.WorkHours{
 			Weekday: uint(workHourIn.Weekday),
-			From:    workHourIn.From,
-			To:      workHourIn.To,
+			From:    orm.DateTimeField(fromTime),
+			To:      orm.DateTimeField(toTime),
 			Bar:     &crud.Bar{Id: barId},
 		}
 		workHoursOut[index] = workHourOut
 	}
-	return workHoursOut
+	return workHoursOut, nil
 }
 
-func (m modelMapperImpl) BarInfoDbToNet(bar *crud.Bar) *responses.BarInfoResponse {
+func (m modelMapperImpl) BarInfoDbToNet(bar *crud.Bar) (*responses.BarInfoResponse, error) {
 	var adminIds = make([]uint64, len(bar.Admins))
 	for i, admin := range bar.Admins {
 		adminIds[i] = admin.Id
+	}
+	workHours, err := m.WorkHoursListDbToNet(bar.WorkHours)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error while converting work hours")
 	}
 	return &responses.BarInfoResponse{
 		Id:          bar.Id,
@@ -73,20 +90,28 @@ func (m modelMapperImpl) BarInfoDbToNet(bar *crud.Bar) *responses.BarInfoRespons
 		Admins:      adminIds,
 		LogoUrl:     bar.LogoUrl,
 		IsVisible:   bar.IsVisible,
-		WorkHours:   m.WorkHoursListDbToNet(bar.WorkHours),
-	}
+		WorkHours:   workHours,
+	}, nil
 }
 
-func (m modelMapperImpl) WorkHoursListDbToNet(workHours []*crud.WorkHours) []responses.WorkHours {
+func (m modelMapperImpl) WorkHoursListDbToNet(workHours []*crud.WorkHours) ([]responses.WorkHours, error) {
 	workHoursOut := make([]responses.WorkHours, len(workHours))
 	for i, wh := range workHours {
+		fromTime, err := timing.GetConverter().TimeToString(wh.From.Value())
+		if err != nil {
+			return nil, errors.Wrap(err, "Error when tried to format work hours time")
+		}
+		toTime, err := timing.GetConverter().TimeToString(wh.To.Value())
+		if err != nil {
+			return nil, errors.Wrap(err, "Error when tried to parse work hours time")
+		}
 		workHoursOut[i] = responses.WorkHours{
 			Weekday: wh.Weekday,
-			From:    wh.From,
-			To:      wh.To,
+			From:    fromTime,
+			To:      toTime,
 		}
 	}
-	return workHoursOut
+	return workHoursOut, nil
 }
 
 func (m modelMapperImpl) TableInfoDbToNet(tableInfo *crud.Table) responses.TableInfo {
@@ -104,4 +129,31 @@ func (m modelMapperImpl) TableInfoListDbToNet(tableInfoList []*crud.Table) []res
 		result = append(result, m.TableInfoDbToNet(tableinfo))
 	}
 	return result
+}
+
+func (m modelMapperImpl) ReservationDbToNet(reservation *crud.Reservation) (responses.Reservation, error) {
+	ToString, err := timing.GetConverter().TimeToString(time.Time(reservation.To))
+	if err != nil {
+		return responses.Reservation{}, err
+	}
+	fromString, err := timing.GetConverter().TimeToString(time.Time(reservation.From))
+	if err != nil {
+		return responses.Reservation{}, err
+	}
+	dateString, err := timing.GetConverter().DateToString(time.Time(reservation.Date))
+	if err != nil {
+		return responses.Reservation{}, err
+	}
+	comment := "reservation"
+	return responses.Reservation{
+		Id:          reservation.Id,
+		BarId:       reservation.Table.BarInfo.Id,
+		TableId:     reservation.Table.Id,
+		From:        fromString,
+		To:          ToString,
+		PersonCount: reservation.PersonCount,
+		Date:        dateString,
+		IsTech:      true,
+		Comment:     &comment,
+	}, nil
 }

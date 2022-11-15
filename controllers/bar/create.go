@@ -35,10 +35,21 @@ func (c *CreateController) CreateBar() {
 	if err != nil {
 		c.InternalServerError(err)
 	}
+	workHoursListInToDb, err := mapping.Mapper.WorkHoursListInToDb(createdBar.Id, barInfo.WorkHours)
+	if err != nil {
+		c.InternalServerError(err)
+	}
 	workHours, err := crud.GetBarCrud().InsertWorkHours(
 		createdBar.Id,
-		mapping.Mapper.WorkHoursListInToDb(createdBar.Id, barInfo.WorkHours),
+		workHoursListInToDb,
 	)
+	if err != nil {
+		c.InternalServerError(err)
+	}
 	createdBar.WorkHours = workHours
-	c.ServeJSONInternal(mapping.Mapper.BarInfoDbToNet(createdBar))
+	barInfoResponse, err := mapping.Mapper.BarInfoDbToNet(createdBar)
+	if err != nil {
+		c.InternalServerError(err)
+	}
+	c.ServeJSONInternal(barInfoResponse)
 }

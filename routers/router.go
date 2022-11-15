@@ -3,6 +3,7 @@ package routers
 import (
 	"barckend/controllers"
 	"barckend/controllers/bar"
+	"barckend/controllers/reservation"
 	"barckend/controllers/table"
 	"barckend/crud"
 	beego "github.com/beego/beego/v2/server/web"
@@ -30,6 +31,8 @@ func init() {
 	updateTable.AuthorizationZones = []crud.Role{crud.Owner, crud.Admin}
 	deleteTable := &table.DeleteController{}
 	deleteTable.AuthorizationZones = []crud.Role{crud.Owner, crud.Admin}
+	createReservation := &reservation.CreateController{}
+	createReservation.AuthorizationZones = []crud.Role{crud.Owner, crud.Admin}
 
 	ns := beego.NewNamespace("/api/v1",
 		beego.NSNamespace(
@@ -53,6 +56,10 @@ func init() {
 			beego.NSRouter("/:table_id([0-9]+)", getTable, "get:GetTableById"),
 			beego.NSRouter("/:table_id([0-9]+)", updateTable, "patch:UpdateTableById"),
 			beego.NSRouter("/:table_id([0-9]+)", deleteTable, "delete:DeleteTableById"),
+		),
+		beego.NSNamespace(
+			"/reserv",
+			beego.NSRouter("/create", createReservation, "post:CreateReservation"),
 		),
 	)
 	beego.AddNamespace(ns)

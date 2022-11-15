@@ -48,6 +48,10 @@ func (c EditController) EditBar() {
 	if updateInfo.WorkHours != nil {
 		workHoursIn = *updateInfo.WorkHours
 	}
+	workHoursListInToDb, err := mapping.Mapper.WorkHoursListInToDb(barInfoDb.Id, workHoursIn)
+	if err != nil {
+		c.InternalServerError(err)
+	}
 	updatedBar, err := crud.GetBarCrud().UpdateBar(&crud.UpdateBar{
 		Id:          barInfoDb.Id,
 		Email:       updateInfo.Email,
@@ -56,7 +60,7 @@ func (c EditController) EditBar() {
 		Description: updateInfo.Description,
 		Address:     updateInfo.Address,
 		IsVisible:   updateInfo.IsVisible,
-		WorkHours:   mapping.Mapper.WorkHoursListInToDb(barInfoDb.Id, workHoursIn),
+		WorkHours:   workHoursListInToDb,
 	}, barInfoDb)
 	if err != nil {
 		c.InternalServerError(err)
@@ -64,5 +68,9 @@ func (c EditController) EditBar() {
 	if updatedBar == nil {
 		c.InternalServerError(errors.New("no bar found after update"))
 	}
-	c.ServeJSONInternal(mapping.Mapper.BarInfoDbToNet(updatedBar))
+	barInfoResponse, err := mapping.Mapper.BarInfoDbToNet(updatedBar)
+	if err != nil {
+		c.InternalServerError(err)
+	}
+	c.ServeJSONInternal(barInfoResponse)
 }

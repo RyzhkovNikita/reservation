@@ -2,8 +2,10 @@ package bodies
 
 import (
 	"barckend/utils"
+	"fmt"
 	"github.com/beego/beego/v2/core/validation"
 	"github.com/pkg/errors"
+	"time"
 )
 
 type BaseBody struct{}
@@ -153,10 +155,16 @@ func (form *UpdateBar) Valid(validation *validation.Validation) {
 }
 
 type CreateTable struct {
-	BarId       int64   `json:"bar_id" valid:"Required"`
+	BarId       int64   `json:"bar_id" valid:"Required; Min(1)"`
 	Name        string  `json:"name" valid:"Required; MinSize(1); MaxSize(30)"`
 	Capacity    int8    `json:"persons" valid:"Required; Range(1,70)"`
 	Description *string `json:"description,omitempty"`
+}
+
+func (form *CreateTable) Valid(validation *validation.Validation) {
+	if form.Description != nil {
+		validation.MaxSize(form.Name, 400, "description")
+	}
 }
 
 type UpdateTable struct {
@@ -175,5 +183,26 @@ func (form *UpdateTable) Valid(validation *validation.Validation) {
 	}
 	if form.Description != nil {
 		validation.MaxSize(form.Name, 400, "description")
+	}
+}
+
+type CreateReservation struct {
+	TableId     int64  `json:"table_id" valid:"Required; Min(1)"`
+	FromTime    string `json:"from_time" valid:"Required; Match(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)"`
+	ToTime      string `json:"to_time" valid:"Required; Match(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)"`
+	Date        string `json:"date" valid:"Required"`
+	PersonCount int    `json:"persons" valid:"Required; Range(1,70)"`
+}
+
+func (form *CreateReservation) Valid(validation *validation.Validation) {
+	formattedFromTime := fmt.Sprintf("%s %s", form.Date, form.FromTime)
+	_, err := time.Parse("02.01.2006 15:04", formattedFromTime)
+	if err != nil {
+		validation.AddError("datetime", "Date or timing has wrong format or value")
+	}
+	formattedToTime := fmt.Sprintf("%s %s", form.Date, form.ToTime)
+	_, err = time.Parse("02.01.2006 15:04", formattedToTime)
+	if err != nil {
+		validation.AddError("datetime", "Date or timing has wrong format or value")
 	}
 }
