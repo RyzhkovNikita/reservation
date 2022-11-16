@@ -11,6 +11,7 @@ type Converter interface {
 	TimeToString(timeObj time.Time) (string, error)
 	StringToTime(string) (time.Time, error)
 	DateToString(timeObj time.Time) (string, error)
+	StringToDate(string) (time.Time, error)
 }
 
 func GetConverter() Converter {
@@ -55,4 +56,12 @@ func (c converterImpl) StringToTime(s string) (time.Time, error) {
 
 func (c converterImpl) DateToString(timeObj time.Time) (string, error) {
 	return timeObj.UTC().Format(c.DateFormat), nil
+}
+
+func (c converterImpl) StringToDate(s string) (time.Time, error) {
+	parsed, err := time.ParseInLocation(c.DateFormat, s, location)
+	if err != nil {
+		return time.Time{}, errors.Wrap(err, "Error while parsing time")
+	}
+	return parsed, nil
 }

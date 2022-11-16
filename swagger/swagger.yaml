@@ -601,7 +601,9 @@ components:
     ModifyReservation:
       type: object
       properties:
-        time:
+        from_time:
+          $ref: '#/components/schemas/TimeString'
+        to_time:
           $ref: '#/components/schemas/TimeString'
         date:
           $ref: '#/components/schemas/DateString'

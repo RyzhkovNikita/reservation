@@ -20,6 +20,7 @@ type ModelMapper interface {
 	TableInfoDbToNet(tableInfo *crud.Table) responses.TableInfo
 	TableInfoListDbToNet(tableInfoList []*crud.Table) []responses.TableInfo
 	ReservationDbToNet(reservation *crud.Reservation) (responses.Reservation, error)
+	ReservationListDbToNet(reservations []*crud.Reservation) ([]responses.Reservation, error)
 }
 
 type modelMapperImpl struct{}
@@ -144,7 +145,6 @@ func (m modelMapperImpl) ReservationDbToNet(reservation *crud.Reservation) (resp
 	if err != nil {
 		return responses.Reservation{}, err
 	}
-	comment := "reservation"
 	return responses.Reservation{
 		Id:          reservation.Id,
 		BarId:       reservation.Table.BarInfo.Id,
@@ -153,7 +153,20 @@ func (m modelMapperImpl) ReservationDbToNet(reservation *crud.Reservation) (resp
 		To:          ToString,
 		PersonCount: reservation.PersonCount,
 		Date:        dateString,
-		IsTech:      true,
-		Comment:     &comment,
+		Guest:       nil, //TODO
+		IsTech:      reservation.Guest == nil,
+		Comment:     reservation.Comment,
 	}, nil
+}
+
+func (m modelMapperImpl) ReservationListDbToNet(reservations []*crud.Reservation) ([]responses.Reservation, error) {
+	outReservations := make([]responses.Reservation, 0, len(reservations))
+	for _, dbReservation := range reservations {
+		reservationOut, err := m.ReservationDbToNet(dbReservation)
+		if err != nil {
+			return nil, err
+		}
+		outReservations = append(outReservations, reservationOut)
+	}
+	return outReservations, nil
 }

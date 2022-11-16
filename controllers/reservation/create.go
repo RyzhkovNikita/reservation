@@ -81,7 +81,10 @@ func (c *CreateController) CreateReservation() {
 	} else {
 		c.InternalServerError(errors.New(""))
 	}
-	barInfo, _ := crud.GetBarCrud().GetBarById(barId)
+	barInfo, err := crud.GetBarCrud().GetBarById(barId)
+	if err != nil {
+		c.InternalServerError(err)
+	}
 	var weekdayWorkHours *crud.WorkHours
 	weekday := reservFromTime.Weekday()
 	if weekday == time.Sunday {

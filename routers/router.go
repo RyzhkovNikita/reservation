@@ -33,6 +33,10 @@ func init() {
 	deleteTable.AuthorizationZones = []crud.Role{crud.Owner, crud.Admin}
 	createReservation := &reservation.CreateController{}
 	createReservation.AuthorizationZones = []crud.Role{crud.Owner, crud.Admin}
+	allReservations := &reservation.AllReservationsController{}
+	allReservations.AuthorizationZones = []crud.Role{crud.Owner, crud.Admin}
+	deleteReservation := &reservation.DeleteController{}
+	deleteReservation.AuthorizationZones = []crud.Role{crud.Owner, crud.Admin}
 
 	ns := beego.NewNamespace("/api/v1",
 		beego.NSNamespace(
@@ -60,6 +64,8 @@ func init() {
 		beego.NSNamespace(
 			"/reserv",
 			beego.NSRouter("/create", createReservation, "post:CreateReservation"),
+			beego.NSRouter("/all", allReservations, "get:GetAll"),
+			beego.NSRouter("/delete/:reserv_id([0-9]+)", deleteReservation, "delete:DeleteById"),
 		),
 	)
 	beego.AddNamespace(ns)

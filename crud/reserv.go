@@ -22,6 +22,8 @@ func GetReservCrud() ReservationCrud {
 type ReservationCrud interface {
 	GetReservationsForTableAndDate(tableId uint64, timee time.Time) ([]*Reservation, error)
 	InsertReservation(reservation *Reservation) (*Reservation, error)
+	GetReservationById(reservationId uint64) (*Reservation, error)
+	DeleteReservationById(reservationId uint64) error
 }
 
 var reservationCrudInstance *reservationCrudImpl
@@ -55,4 +57,27 @@ func (r reservationCrudImpl) InsertReservation(reservation *Reservation) (*Reser
 	}
 	reservation.Id = uint64(id)
 	return reservation, nil
+}
+
+func (r reservationCrudImpl) GetReservationById(reservationId uint64) (*Reservation, error) {
+	res := &Reservation{}
+	err := r.ormer.QueryTable(res).Filter("id", reservationId).One(res)
+	if err == orm.ErrNoRows {
+		return nil, nil
+	} else if err == orm.ErrMissPK {
+		return nil, errors.Wrap(err, fmt.Sprintf("Miss primary key for id %d", reservationId))
+	}
+	_, err = r.ormer.LoadRelated(res, "Table")
+	if err != nil {
+		return nil, errors.Wrap(err, "Error when tried to load related bar for reservationId="+strconv.FormatUint(reservationId, 10))
+	}
+	return res, nil
+}
+
+func (r reservationCrudImpl) DeleteReservationById(reservationId uint64) error {
+	_, err := r.ormer.Delete(&Reservation{Id: reservationId})
+	if err != nil {
+		return errors.Wrap(err, "Error while deleting")
+	}
+	return nil
 }
